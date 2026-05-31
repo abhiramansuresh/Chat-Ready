@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ApiRequestError, convertFile, convertUrl } from "@/lib/api";
 import { maxUploadSizeBytes, maxUploadSizeMb } from "@/lib/env";
-import type { ConversionStatus } from "@/types/conversion";
+import type { ConversionResponse, ConversionStatus } from "@/types/conversion";
 
 import { StatusMessage } from "./StatusMessage";
 import { UploadDropzone } from "./UploadDropzone";
@@ -15,17 +15,26 @@ type InputMode = "file" | "url";
 
 interface UploadPanelProps {
   readonly activeMode: InputMode;
+  readonly resetKey: number;
   readonly onModeChange: (mode: InputMode) => void;
+  readonly onConversionComplete: (result: ConversionResponse) => void;
 }
 
 export function UploadPanel({
   activeMode,
+  resetKey,
   onModeChange,
+  onConversionComplete,
 }: UploadPanelProps): ReactElement {
   const [status, setStatus] = useState<ConversionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isBusy = status === "uploading" || status === "processing";
+
+  useEffect(() => {
+    setStatus("idle");
+    setErrorMessage(null);
+  }, [resetKey]);
 
   async function handleFileSelected(file: File): Promise<void> {
     if (file.size > maxUploadSizeBytes) {
@@ -40,7 +49,8 @@ export function UploadPanel({
     try {
       const conversionRequest = convertFile(file);
       setStatus("processing");
-      await conversionRequest;
+      const result = await conversionRequest;
+      onConversionComplete(result);
       setStatus("success");
     } catch (error) {
       handleError(error);
@@ -60,7 +70,8 @@ export function UploadPanel({
     setErrorMessage(null);
 
     try {
-      await convertUrl(trimmedUrl);
+      const result = await convertUrl(trimmedUrl);
+      onConversionComplete(result);
       setStatus("success");
     } catch (error) {
       handleError(error);
