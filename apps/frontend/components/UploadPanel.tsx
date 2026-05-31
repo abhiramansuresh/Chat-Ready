@@ -113,7 +113,7 @@ export function UploadPanel({
   return (
     <section
       id="converter"
-      className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+      className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
       aria-label="Converter"
       aria-busy={isBusy}
     >

@@ -3,8 +3,6 @@ import type { ReactElement } from "react";
 import type { ConversionResponse } from "@/types/conversion";
 
 import { MarkdownPreview } from "./MarkdownPreview";
-import { ResultActions } from "./ResultActions";
-import { StatsPanel } from "./StatsPanel";
 
 interface ResultExperienceProps {
   readonly result: ConversionResponse;
@@ -18,18 +16,11 @@ export function ResultExperience({
   return (
     <section
       id="result"
-      className="mx-auto grid max-w-6xl gap-6 px-6 py-10 lg:grid-cols-[1fr_320px] lg:items-start"
+      className="mx-auto w-full max-w-6xl min-w-0 px-4 py-10 sm:px-6"
       aria-label="Conversion result"
       aria-live="polite"
     >
-      <MarkdownPreview markdown={result.markdown} />
-      <div className="flex flex-col gap-4">
-        <StatsPanel result={result} />
-        <ResultActions
-          markdown={result.markdown}
-          onConvertAnother={onConvertAnother}
-        />
-      </div>
+      <MarkdownPreview result={result} onConvertAnother={onConvertAnother} />
     </section>
   );
 }

@@ -56,8 +56,8 @@ export function HomePage(): ReactElement {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[1fr_420px] lg:items-center lg:py-14">
+    <main className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26.25rem)] lg:items-center lg:py-14">
         <HeroSection
           onSelectFileMode={selectFileMode}
           onSelectUrlMode={selectUrlMode}

@@ -25,7 +25,7 @@ const FORMAT_GROUPS = [
 
 export function SupportedFormats(): ReactElement {
   return (
-    <section className="mx-auto grid max-w-6xl gap-4 px-6 py-10 sm:grid-cols-2 lg:grid-cols-5">
+    <section className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-5">
       {FORMAT_GROUPS.map((group) => (
         <div key={group.title} className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-950">

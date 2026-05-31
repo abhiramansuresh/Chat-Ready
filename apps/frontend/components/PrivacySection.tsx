@@ -10,7 +10,7 @@ const PRIVACY_POINTS = [
 export function PrivacySection(): ReactElement {
   return (
     <section className="bg-white" aria-labelledby="privacy-heading">
-      <div className="mx-auto max-w-6xl px-6 py-12">
+      <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
         <div className="max-w-3xl">
           <h2
             id="privacy-heading"

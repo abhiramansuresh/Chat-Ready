@@ -19,7 +19,7 @@ const FAQ_ITEMS = [
 export function FaqSection(): ReactElement {
   return (
     <section
-      className="mx-auto max-w-6xl px-6 py-12"
+      className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6"
       aria-labelledby="faq-heading"
     >
       <h2 id="faq-heading" className="text-2xl font-semibold text-slate-950">
