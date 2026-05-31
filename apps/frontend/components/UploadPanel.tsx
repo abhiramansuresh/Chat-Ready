@@ -30,6 +30,10 @@ export function UploadPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isBusy = status === "uploading" || status === "processing";
+  const fileTabId = "converter-file-tab";
+  const urlTabId = "converter-url-tab";
+  const filePanelId = "converter-file-panel";
+  const urlPanelId = "converter-url-panel";
 
   useEffect(() => {
     setStatus("idle");
@@ -100,40 +104,62 @@ export function UploadPanel({
     }
   }
 
+  function handleModeChange(mode: InputMode): void {
+    setErrorMessage(null);
+    setStatus("idle");
+    onModeChange(mode);
+  }
+
   return (
     <section
       id="converter"
       className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
       aria-label="Converter"
+      aria-busy={isBusy}
     >
-      <div className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1">
+      <div
+        className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1"
+        role="tablist"
+        aria-label="Conversion input type"
+      >
         <button
+          id={fileTabId}
           type="button"
-          onClick={() => onModeChange("file")}
+          role="tab"
+          onClick={() => handleModeChange("file")}
           className={`min-h-10 rounded-md px-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 ${
             activeMode === "file"
               ? "bg-white text-slate-950 shadow-sm"
               : "text-slate-600 hover:text-slate-950"
           }`}
-          aria-pressed={activeMode === "file"}
+          aria-selected={activeMode === "file"}
+          aria-controls={filePanelId}
         >
           File
         </button>
         <button
+          id={urlTabId}
           type="button"
-          onClick={() => onModeChange("url")}
+          role="tab"
+          onClick={() => handleModeChange("url")}
           className={`min-h-10 rounded-md px-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 ${
             activeMode === "url"
               ? "bg-white text-slate-950 shadow-sm"
               : "text-slate-600 hover:text-slate-950"
           }`}
-          aria-pressed={activeMode === "url"}
+          aria-selected={activeMode === "url"}
+          aria-controls={urlPanelId}
         >
           URL
         </button>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div
+        id={activeMode === "file" ? filePanelId : urlPanelId}
+        role="tabpanel"
+        aria-labelledby={activeMode === "file" ? fileTabId : urlTabId}
+        className="flex flex-col gap-4"
+      >
         {activeMode === "file" ? (
           <UploadDropzone
             disabled={isBusy}

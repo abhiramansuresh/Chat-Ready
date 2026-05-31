@@ -26,6 +26,7 @@ export function HeroSection({
         <button
           type="button"
           onClick={onSelectFileMode}
+          aria-label="Choose file upload mode"
           className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
         >
           Upload File
@@ -33,6 +34,7 @@ export function HeroSection({
         <button
           type="button"
           onClick={onSelectUrlMode}
+          aria-label="Choose URL paste mode"
           className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
         >
           Paste URL

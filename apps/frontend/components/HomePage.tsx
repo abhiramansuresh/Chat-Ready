@@ -5,7 +5,10 @@ import { useState } from "react";
 
 import type { ConversionResponse } from "@/types/conversion";
 
+import { EmptyResultState } from "./EmptyResultState";
+import { FaqSection } from "./FaqSection";
 import { HeroSection } from "./HeroSection";
+import { PrivacySection } from "./PrivacySection";
 import { ResultExperience } from "./ResultExperience";
 import { SupportedFormats } from "./SupportedFormats";
 import { UploadPanel } from "./UploadPanel";
@@ -71,8 +74,12 @@ export function HomePage(): ReactElement {
           result={conversionResult}
           onConvertAnother={handleConvertAnother}
         />
-      ) : null}
+      ) : (
+        <EmptyResultState />
+      )}
       <SupportedFormats />
+      <PrivacySection />
+      <FaqSection />
     </main>
   );
 }

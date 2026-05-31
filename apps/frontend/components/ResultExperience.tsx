@@ -20,6 +20,7 @@ export function ResultExperience({
       id="result"
       className="mx-auto grid max-w-6xl gap-6 px-6 py-10 lg:grid-cols-[1fr_320px] lg:items-start"
       aria-label="Conversion result"
+      aria-live="polite"
     >
       <MarkdownPreview markdown={result.markdown} />
       <div className="flex flex-col gap-4">

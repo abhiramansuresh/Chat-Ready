@@ -40,6 +40,8 @@ export function ResultActions({
       <button
         type="button"
         onClick={handleCopy}
+        aria-live="polite"
+        aria-label="Copy Markdown to clipboard"
         className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
       >
         {copyLabel}
@@ -47,6 +49,7 @@ export function ResultActions({
       <button
         type="button"
         onClick={handleDownload}
+        aria-label="Download Markdown file"
         className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
       >
         Download .md
@@ -54,6 +57,7 @@ export function ResultActions({
       <button
         type="button"
         onClick={onConvertAnother}
+        aria-label="Start another conversion"
         className="inline-flex min-h-11 items-center justify-center rounded-md border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-800 hover:border-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:ring-offset-2"
       >
         Convert another file
