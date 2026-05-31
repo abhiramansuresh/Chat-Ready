@@ -43,6 +43,19 @@ uvicorn app.main:app --reload
 
 The backend runs at `http://localhost:8000`.
 
+## Deployment
+
+### Backend on Render
+
+Use `apps/backend` as the Render root directory. The backend includes
+`apps/backend/.python-version` so Render installs Python `3.13.3`, which is
+compatible with the pinned MarkItDown dependencies.
+
+Render settings:
+
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
 ## Environment Variables
 
 Frontend:
