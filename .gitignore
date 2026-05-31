@@ -1,0 +1,24 @@
+.DS_Store
+
+# Environment
+.env
+.env.local
+apps/**/.env
+apps/**/.env.local
+!apps/**/.env.example
+
+# Frontend
+apps/frontend/.next/
+apps/frontend/out/
+apps/frontend/node_modules/
+apps/frontend/*.tsbuildinfo
+
+# Backend
+apps/backend/.venv/
+apps/backend/__pycache__/
+apps/backend/**/__pycache__/
+apps/backend/.pytest_cache/
+apps/backend/.ruff_cache/
+
+# Logs
+*.log
