@@ -21,16 +21,6 @@ export function HomePage(): ReactElement {
     useState<ConversionResponse | null>(null);
   const [resetKey, setResetKey] = useState(0);
 
-  function selectFileMode(): void {
-    setActiveMode("file");
-    scrollToConverter();
-  }
-
-  function selectUrlMode(): void {
-    setActiveMode("url");
-    scrollToConverter();
-  }
-
   function scrollToConverter(): void {
     document.getElementById("converter")?.scrollIntoView({
       behavior: "smooth",
@@ -57,17 +47,16 @@ export function HomePage(): ReactElement {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26.25rem)] lg:items-center lg:py-14">
-        <HeroSection
-          onSelectFileMode={selectFileMode}
-          onSelectUrlMode={selectUrlMode}
-        />
-        <UploadPanel
-          activeMode={activeMode}
-          resetKey={resetKey}
-          onModeChange={setActiveMode}
-          onConversionComplete={handleConversionComplete}
-        />
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-4 py-10 sm:px-6 lg:min-h-[calc(100vh-80px)] lg:justify-center lg:py-14">
+        <HeroSection />
+        <div className="w-full max-w-4xl">
+          <UploadPanel
+            activeMode={activeMode}
+            resetKey={resetKey}
+            onModeChange={setActiveMode}
+            onConversionComplete={handleConversionComplete}
+          />
+        </div>
       </div>
       {conversionResult ? (
         <ResultExperience

@@ -50,6 +50,7 @@ export function UploadDropzone({
 
   function handleDrop(event: DragEvent<HTMLLabelElement>): void {
     event.preventDefault();
+    event.stopPropagation();
     onDragIdle();
 
     if (disabled) {
@@ -70,7 +71,7 @@ export function UploadDropzone({
       onDragOver={(event) => event.preventDefault()}
       onDragLeave={onDragIdle}
       onDrop={handleDrop}
-      className={`flex min-h-52 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center transition ${
+      className={`flex min-h-72 cursor-pointer flex-col items-center justify-center gap-4 rounded-md border border-dashed px-5 py-8 text-center transition sm:min-h-80 sm:px-8 ${
         isDragHover
           ? "border-teal-700 bg-teal-50"
           : "border-slate-300 bg-slate-50 hover:border-slate-400"
@@ -86,8 +87,12 @@ export function UploadDropzone({
         onChange={handleFileInput}
         className="sr-only"
       />
-      <span className="text-base font-semibold text-slate-950">Drop file here</span>
-      <span className="text-sm text-slate-600">or choose a file</span>
+      <span className="text-xl font-semibold text-slate-950">
+        Drop your file here
+      </span>
+      <span className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white">
+        Upload a file
+      </span>
       <span className="text-xs text-slate-500">Max {maxUploadSizeMb}MB</span>
     </label>
   );

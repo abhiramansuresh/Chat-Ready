@@ -28,8 +28,10 @@ export function UploadPanel({
 }: UploadPanelProps): ReactElement {
   const [status, setStatus] = useState<ConversionStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pageDragDepth, setPageDragDepth] = useState(0);
 
   const isBusy = status === "uploading" || status === "processing";
+  const showPageDropOverlay = pageDragDepth > 0 && !isBusy;
   const fileTabId = "converter-file-tab";
   const urlTabId = "converter-url-tab";
   const filePanelId = "converter-file-panel";
@@ -39,6 +41,74 @@ export function UploadPanel({
     setStatus("idle");
     setErrorMessage(null);
   }, [resetKey]);
+
+  useEffect(() => {
+    function handleWindowDragEnter(event: DragEvent): void {
+      if (!hasDraggedFiles(event) || isBusy) {
+        return;
+      }
+
+      event.preventDefault();
+      setPageDragDepth((currentDepth) => currentDepth + 1);
+
+      if (activeMode !== "file") {
+        onModeChange("file");
+      }
+    }
+
+    function handleWindowDragOver(event: DragEvent): void {
+      if (!hasDraggedFiles(event) || isBusy) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy";
+      }
+    }
+
+    function handleWindowDragLeave(event: DragEvent): void {
+      if (!hasDraggedFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      setPageDragDepth((currentDepth) => Math.max(currentDepth - 1, 0));
+    }
+
+    function handleWindowDrop(event: DragEvent): void {
+      if (!hasDraggedFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      setPageDragDepth(0);
+
+      if (isBusy) {
+        return;
+      }
+
+      const file = event.dataTransfer?.files.item(0);
+
+      if (file) {
+        onModeChange("file");
+        void handleFileSelected(file);
+      }
+    }
+
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("drop", handleWindowDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("drop", handleWindowDrop);
+    };
+  }, [activeMode, isBusy, onModeChange]);
 
   async function handleFileSelected(file: File): Promise<void> {
     if (file.size > maxUploadSizeBytes) {
@@ -113,10 +183,22 @@ export function UploadPanel({
   return (
     <section
       id="converter"
-      className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+      className="relative min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
       aria-label="Converter"
       aria-busy={isBusy}
     >
+      {showPageDropOverlay ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-6"
+          aria-hidden="true"
+        >
+          <div className="flex min-h-64 w-full max-w-2xl items-center justify-center rounded-lg border-2 border-dashed border-white bg-white/95 px-6 text-center shadow-xl">
+            <p className="text-2xl font-semibold text-slate-950">
+              Drop your file to convert it
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div
         className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1"
         role="tablist"
@@ -158,7 +240,7 @@ export function UploadPanel({
         id={activeMode === "file" ? filePanelId : urlPanelId}
         role="tabpanel"
         aria-labelledby={activeMode === "file" ? fileTabId : urlTabId}
-        className="flex flex-col gap-4"
+        className="flex min-h-[22.25rem] flex-col gap-4"
       >
         {activeMode === "file" ? (
           <UploadDropzone
@@ -172,8 +254,26 @@ export function UploadPanel({
           <UrlInputForm disabled={isBusy} onSubmit={handleUrlSubmit} />
         )}
 
-        <StatusMessage status={status} errorMessage={errorMessage} />
+        <div className="min-h-11">
+          <StatusMessage status={status} errorMessage={errorMessage} />
+        </div>
       </div>
     </section>
   );
+}
+
+function hasDraggedFiles(event: DragEvent): boolean {
+  const types = event.dataTransfer?.types;
+
+  if (!types) {
+    return false;
+  }
+
+  for (let index = 0; index < types.length; index += 1) {
+    if (types[index] === "Files") {
+      return true;
+    }
+  }
+
+  return false;
 }
