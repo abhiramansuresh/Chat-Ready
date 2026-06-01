@@ -18,7 +18,8 @@ const STEPS = [
 export function HowItWorks(): ReactElement {
   return (
     <section
-      className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6"
+      id="how-it-works"
+      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-12 sm:px-6"
       aria-labelledby="how-it-works-heading"
     >
       <h2 id="how-it-works-heading" className="text-2xl font-semibold text-slate-950 dark:text-white">

@@ -35,7 +35,8 @@ export function FaqAccordion(): ReactElement {
 
   return (
     <section
-      className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6"
+      id="faq"
+      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-12 sm:px-6"
       aria-labelledby="faq-heading"
     >
       <h2 id="faq-heading" className="text-2xl font-semibold text-slate-950 dark:text-white">

@@ -11,6 +11,10 @@ import { ErrorState } from "./ErrorState";
 import { FileDropZone } from "./FileDropZone";
 import { LoadingState } from "./LoadingState";
 import { ResultsPanel } from "./ResultsPanel";
+import {
+  SessionHistory,
+  type SessionHistoryItem,
+} from "./SessionHistory";
 import { UrlInput } from "./UrlInput";
 
 type ActiveTab = "file" | "url";
@@ -25,6 +29,9 @@ export function UploadArea(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<ConversionResponse | null>(null);
   const [sourceLabel, setSourceLabel] = useState("chatready-output");
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>(
+    [],
+  );
   const [pageDragDepth, setPageDragDepth] = useState(0);
 
   const isLoading = status === "loading";
@@ -136,8 +143,7 @@ export function UploadArea(): ReactElement {
 
     try {
       const conversionResult = await convertFile(selectedFile);
-      setResult(conversionResult);
-      setStatus("success");
+      handleConversionSuccess(conversionResult, selectedFile.name);
     } catch (error) {
       setStatus("error");
       setErrorMessage(getFriendlyError(error));
@@ -163,8 +169,7 @@ export function UploadArea(): ReactElement {
 
     try {
       const conversionResult = await convertUrl(trimmedUrl);
-      setResult(conversionResult);
-      setStatus("success");
+      handleConversionSuccess(conversionResult, trimmedUrl);
     } catch (error) {
       setStatus("error");
       setErrorMessage(getFriendlyError(error));
@@ -183,99 +188,124 @@ export function UploadArea(): ReactElement {
     setPageDragDepth(0);
   }
 
+  function handleConversionSuccess(
+    conversionResult: ConversionResponse,
+    label: string,
+  ): void {
+    setResult(conversionResult);
+    setSourceLabel(label);
+    setStatus("success");
+    setSessionHistory((currentHistory) => [
+      {
+        createdAtLabel: new Intl.DateTimeFormat("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date()),
+        id: createHistoryId(),
+        result: conversionResult,
+        sourceLabel: label,
+      },
+      ...currentHistory,
+    ]);
+  }
+
   return (
-    <section
-      id="upload"
-      className="relative mx-auto w-full max-w-4xl rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 sm:p-5"
-      aria-label="Convert content to Markdown"
-      aria-busy={isLoading}
-    >
-      {showPageDropOverlay ? <PageDropOverlay /> : null}
+    <div id="upload" className="mx-auto w-full max-w-4xl scroll-mt-24">
+      <section
+        className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 sm:p-5"
+        aria-label="Convert content to Markdown"
+        aria-busy={isLoading}
+      >
+        {showPageDropOverlay ? <PageDropOverlay /> : null}
 
-      {status === "loading" ? <LoadingState /> : null}
+        {status === "loading" ? <LoadingState /> : null}
 
-      {status === "error" && errorMessage ? (
-        <ErrorState message={errorMessage} onTryAgain={handleReset} />
-      ) : null}
+        {status === "error" && errorMessage ? (
+          <ErrorState message={errorMessage} onTryAgain={handleReset} />
+        ) : null}
 
-      {status === "success" && result ? (
-        <ResultsPanel
-          result={result}
-          sourceLabel={sourceLabel}
-          onReset={handleReset}
-        />
-      ) : null}
+        {status === "success" && result ? (
+          <ResultsPanel
+            result={result}
+            sourceLabel={sourceLabel}
+            onReset={handleReset}
+          />
+        ) : null}
 
-      {status === "idle" ? (
-        <>
-          <div
-            className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1 dark:bg-slate-950"
-            role="tablist"
-            aria-label="Conversion input type"
-          >
-            <button
-              id={fileTabId}
-              type="button"
-              role="tab"
-              onClick={() => handleTabChange("file")}
-              className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
-                activeTab === "file"
-                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                  : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-              }`}
-              aria-selected={activeTab === "file"}
-              aria-controls={filePanelId}
+        {status === "idle" ? (
+          <>
+            <div
+              className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1 dark:bg-slate-950"
+              role="tablist"
+              aria-label="Conversion input type"
             >
-              File
-            </button>
-            <button
-              id={urlTabId}
-              type="button"
-              role="tab"
-              onClick={() => handleTabChange("url")}
-              className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
-                activeTab === "url"
-                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                  : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-              }`}
-              aria-selected={activeTab === "url"}
-              aria-controls={urlPanelId}
-            >
-              URL
-            </button>
-          </div>
+              <button
+                id={fileTabId}
+                type="button"
+                role="tab"
+                onClick={() => handleTabChange("file")}
+                className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
+                  activeTab === "file"
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
+                    : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
+                }`}
+                aria-selected={activeTab === "file"}
+                aria-controls={filePanelId}
+              >
+                File
+              </button>
+              <button
+                id={urlTabId}
+                type="button"
+                role="tab"
+                onClick={() => handleTabChange("url")}
+                className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
+                  activeTab === "url"
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
+                    : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
+                }`}
+                aria-selected={activeTab === "url"}
+                aria-controls={urlPanelId}
+              >
+                URL
+              </button>
+            </div>
 
-          <div
-            id={activeTab === "file" ? filePanelId : urlPanelId}
-            role="tabpanel"
-            aria-labelledby={activeTab === "file" ? fileTabId : urlTabId}
-            className="min-h-[28rem]"
-          >
-            {activeTab === "file" ? (
-              <FileDropZone
-                disabled={isLoading}
-                isDragActive={showPageDropOverlay}
-                selectedFile={selectedFile}
-                onClearFile={() => setSelectedFile(null)}
-                onConvertFile={handleConvertFile}
-                onFileSelected={handleFileSelected}
-              />
-            ) : (
-              <UrlInput
-                disabled={isLoading}
-                value={urlValue}
-                errorMessage={urlError}
-                onChange={(value) => {
-                  setUrlValue(value);
-                  setUrlError(null);
-                }}
-                onConvert={handleConvertUrl}
-              />
-            )}
-          </div>
-        </>
-      ) : null}
-    </section>
+            <div
+              id={activeTab === "file" ? filePanelId : urlPanelId}
+              role="tabpanel"
+              aria-labelledby={activeTab === "file" ? fileTabId : urlTabId}
+            >
+              {activeTab === "file" ? (
+                <FileDropZone
+                  disabled={isLoading}
+                  isDragActive={showPageDropOverlay}
+                  selectedFile={selectedFile}
+                  onClearFile={() => setSelectedFile(null)}
+                  onConvertFile={handleConvertFile}
+                  onFileSelected={handleFileSelected}
+                />
+              ) : (
+                <UrlInput
+                  disabled={isLoading}
+                  value={urlValue}
+                  errorMessage={urlError}
+                  onChange={(value) => {
+                    setUrlValue(value);
+                    setUrlError(null);
+                  }}
+                  onConvert={handleConvertUrl}
+                />
+              )}
+            </div>
+          </>
+        ) : null}
+      </section>
+      <SessionHistory
+        items={sessionHistory}
+        onClearHistory={() => setSessionHistory([])}
+      />
+    </div>
   );
 }
 
@@ -285,8 +315,8 @@ function PageDropOverlay(): ReactElement {
       className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-5"
       aria-hidden="true"
     >
-      <div className="flex min-h-64 w-full max-w-2xl items-center justify-center rounded-xl border-2 border-dashed border-white bg-white px-6 text-center shadow-2xl dark:bg-slate-900">
-        <p className="text-3xl font-semibold text-slate-950 dark:text-white">
+      <div className="flex min-h-64 w-full max-w-2xl items-center justify-center rounded-xl border-2 border-dashed border-white px-6 text-center">
+        <p className="text-3xl font-semibold text-white">
           Drop to convert
         </p>
       </div>
@@ -325,4 +355,12 @@ function getFriendlyError(error: unknown): string {
   }
 
   return "Conversion failed. This file type may not be supported.";
+}
+
+function createHistoryId(): string {
+  if (globalThis.crypto.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

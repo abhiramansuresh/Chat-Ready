@@ -132,7 +132,7 @@ export function FileDropZone({
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
           aria-label="Upload a file"
-          className={`flex min-h-56 cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border border-dashed px-5 py-8 text-center transition sm:min-h-64 sm:px-8 ${
+          className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-5 py-7 text-center transition sm:px-8 ${
             isDragActive
               ? "border-teal-600 bg-teal-50 dark:border-teal-400 dark:bg-teal-950/40"
               : "border-slate-300 bg-slate-50 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-500"
@@ -174,7 +174,7 @@ function SelectedFilePanel({
   onConvertFile,
 }: SelectedFilePanelProps): ReactElement {
   return (
-    <div className="min-h-56 rounded-lg border border-slate-200 bg-slate-50 p-5 sm:min-h-64 sm:p-6 dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 sm:p-6 dark:border-slate-700 dark:bg-slate-900">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-200">
           <FileIcon />
@@ -212,17 +212,17 @@ function SelectedFilePanel({
 
 function FormatChips(): ReactElement {
   return (
-    <div className="grid gap-3 text-left sm:grid-cols-2">
+    <div className="grid gap-2 text-left sm:grid-cols-2">
       {FORMAT_GROUPS.map((group) => (
         <div key={group.label} className="min-w-0">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {group.label}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {group.formats.map((format) => (
               <span
                 key={`${group.label}-${format}`}
-                className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
                 {format}
               </span>
@@ -238,7 +238,7 @@ function UploadIcon(): ReactElement {
   return (
     <svg
       aria-hidden="true"
-      className="h-10 w-10 text-teal-700 dark:text-teal-300"
+      className="h-9 w-9 text-teal-700 dark:text-teal-300"
       viewBox="0 0 24 24"
       fill="none"
     >

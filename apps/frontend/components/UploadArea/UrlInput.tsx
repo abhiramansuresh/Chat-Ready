@@ -25,7 +25,7 @@ export function UrlInput({
   }
 
   return (
-    <div className="flex min-h-56 flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-8 sm:min-h-64 sm:px-8 dark:border-slate-700 dark:bg-slate-900">
+    <div className="flex min-h-[220px] flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-5 py-7 sm:px-8 dark:border-slate-700 dark:bg-slate-900">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3">
         <label
           htmlFor="url-input"

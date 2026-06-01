@@ -5,6 +5,12 @@ import { useState } from "react";
 
 import type { ConversionResponse } from "@/types/conversion";
 
+import {
+  downloadMarkdownFile,
+  formatNumber,
+  getSavingsLabel,
+} from "./downloads";
+
 interface ResultsPanelProps {
   readonly result: ConversionResponse;
   readonly sourceLabel: string;
@@ -19,8 +25,6 @@ export function ResultsPanel({
   const [copyLabel, setCopyLabel] = useState("Copy Markdown");
   const previewText =
     result.markdown.trim() || "No Markdown content was generated.";
-  const hasSavings = result.reductionPercent > 0;
-  const savingsPercent = Math.round(result.reductionPercent);
 
   async function handleCopy(): Promise<void> {
     try {
@@ -34,15 +38,10 @@ export function ResultsPanel({
   }
 
   function handleDownload(): void {
-    const blob = new Blob([result.markdown], {
-      type: "text/markdown;charset=utf-8",
+    downloadMarkdownFile({
+      markdown: result.markdown,
+      sourceLabel,
     });
-    const downloadUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = downloadUrl;
-    anchor.download = getDownloadFileName(sourceLabel);
-    anchor.click();
-    URL.revokeObjectURL(downloadUrl);
   }
 
   return (
@@ -50,7 +49,7 @@ export function ResultsPanel({
       <div className="flex flex-col gap-5 border-b border-slate-200 pb-5 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-3xl font-semibold tracking-tight text-teal-700 dark:text-teal-300">
-            {hasSavings ? `~${savingsPercent}% fewer tokens` : "Markdown ready"}
+            {getSavingsLabel(result)}
           </h2>
           <Tooltip />
         </div>
@@ -135,33 +134,4 @@ function Tooltip(): ReactElement {
       </span>
     </span>
   );
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat("en-US").format(Math.max(0, Math.round(value)));
-}
-
-function getDownloadFileName(sourceLabel: string): string {
-  const withoutQuery = sourceLabel.split("?")[0] ?? sourceLabel;
-  const rawName = withoutQuery.includes("://")
-    ? getNameFromUrl(withoutQuery)
-    : withoutQuery;
-  const baseName = rawName.replace(/\.[^/.]+$/, "") || "chatready-output";
-  const safeName = baseName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return `${safeName || "chatready-output"}.md`;
-}
-
-function getNameFromUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-    const pathName = parsedUrl.pathname.split("/").filter(Boolean).pop();
-
-    return pathName || parsedUrl.hostname;
-  } catch {
-    return "chatready-output";
-  }
 }

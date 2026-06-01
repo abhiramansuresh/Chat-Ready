@@ -29,6 +29,26 @@ prevents accidental uploads while still keeping the flow short.
 
 Dragging a file anywhere over the page shows a large "Drop to convert" overlay.
 This makes the entire page feel ready to receive files, not just a small target.
+The center target keeps only the dashed outline so the overlay feels lighter and
+does not become a second heavy card.
+
+### Compact Format Chips
+
+Supported file-type chips remain close to the upload action, but they are small
+and secondary. The separate supported-format section was removed to keep the
+page focused on converting.
+
+### Session History
+
+Converted files stay visible in a session history under the converter. Users can
+download a single past conversion or export the whole session as one Markdown
+bundle. This borrows the useful batch-download idea from converter tools while
+staying within V1 constraints: no account, no database, no persistent storage.
+
+### Header Anchors
+
+The sticky header now includes section anchors. This gives the longer landing
+page quick movement without adding a complex navigation system.
 
 ### Token Savings Language
 
@@ -47,7 +67,8 @@ because the Markdown is cleaner and easier to use with AI tools.
 - The upload panel is full-width on small screens.
 - Result actions stack on mobile and sit side by side on larger screens.
 - Markdown preview has a smaller max height on mobile to keep actions reachable.
-- Format and trust grids collapse into single-column layouts on mobile.
+- Trust grids collapse into single-column layouts on mobile.
+- Header anchors wrap instead of forcing horizontal page overflow.
 
 ## Accessibility Decisions
 

@@ -14,7 +14,8 @@ The frontend is a single responsive Next.js App Router page in
 - Full-page drag overlay for file drops.
 - Loading, success, and error states inside the upload area.
 - Token savings summary, Markdown preview, copy, and download actions.
-- Supported formats, how-it-works, privacy, FAQ accordion, and footer sections.
+- In-memory session history with individual and combined Markdown downloads.
+- How-it-works, privacy, FAQ accordion, credit, and footer sections.
 - Dark mode support through Tailwind `dark:` classes.
 
 ## Key Specs

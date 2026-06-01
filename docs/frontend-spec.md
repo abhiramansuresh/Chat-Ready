@@ -20,8 +20,8 @@
 
 ### Home Page
 
-Sections: 1. Hero 2. Upload Area 3. Supported formats 4. Privacy section
-5. FAQ
+Sections: 1. Navbar 2. Hero 3. Upload Area 4. How it works 5. Privacy section
+6. FAQ 7. Credit 8. Footer
 
 ### Hero
 
@@ -90,7 +90,8 @@ interaction above the fold on desktop.
 
 1. **Navbar**  
    Sticky minimal header with the ChatReady logo and a "Powered by MarkItDown"
-   badge. No navigation links are included in V1.
+   badge. Header anchors link to Convert, How it works, Privacy, FAQ, and
+   Credit.
 
 2. **Hero**  
    Centered H1, subheadline, and two trust badges: "No AI processing" and
@@ -100,18 +101,18 @@ interaction above the fold on desktop.
    Main conversion surface. Supports file upload, URL conversion, page-level
    drag overlay, loading, error, and in-place result states.
 
-4. **Supported formats**  
-   Four responsive cards for Documents, Slides & Sheets, Structured, and Media.
-
-5. **How it works**  
+4. **How it works**  
    Three-step explainer: Upload, Convert, Use with AI.
 
-6. **Privacy and trust**  
+5. **Privacy and trust**  
    Four trust points covering no AI processing, no file storage, deletion after
    conversion, and no content logging.
 
-7. **FAQ accordion**  
+6. **FAQ accordion**  
    Five accessible accordion items, closed by default.
+
+7. **Credit**  
+   Credits Abhiraman Suresh and links to `https://abhiraman.in`.
 
 8. **Footer**  
    Minimal footer with copyright and placeholder Privacy / Terms links.
@@ -127,11 +128,12 @@ HomePage
 │  ├─ UrlInput
 │  ├─ LoadingState
 │  ├─ ErrorState
-│  └─ ResultsPanel
-├─ FormatGrid
+│  ├─ ResultsPanel
+│  └─ SessionHistory
 ├─ HowItWorks
 ├─ PrivacySection
 ├─ FaqAccordion
+├─ CreditSection
 └─ Footer
 ```
 
@@ -160,11 +162,12 @@ error
 
 - File tab is the default active tab.
 - Dragging a file anywhere over the page shows a full-page "Drop to convert"
-  overlay.
+  overlay with a transparent center area and dashed border.
 - Dropping or browsing selects the file but does not auto-submit.
 - Selected file state shows name, type, size, clear action, and a Convert CTA.
 - Upload zone supports keyboard activation with Enter or Space.
 - Max upload size is read from `NEXT_PUBLIC_MAX_UPLOAD_SIZE_MB`.
+- Supported format chips are compact and live under the main dropzone.
 
 ### URL Behaviour
 
@@ -184,6 +187,16 @@ error
 - Markdown preview is a scrollable monospace code block.
 - Actions: Copy Markdown, Download `.md`, Convert another file.
 - Download filename is derived from the source filename or URL slug.
+
+### Session History
+
+- Successful conversions are stored in browser memory for the current page
+  session only.
+- The history list appears under the upload area after the first successful
+  conversion.
+- Users can download individual previous conversions.
+- Users can download all session conversions as one combined Markdown file.
+- History does not persist across refreshes and does not use a database.
 
 ### API Integration
 

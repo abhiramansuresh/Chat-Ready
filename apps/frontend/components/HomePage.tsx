@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
 
+import { CreditSection } from "./CreditSection";
 import { FaqAccordion } from "./FaqAccordion";
 import { Footer } from "./Footer";
-import { FormatGrid } from "./FormatGrid";
 import { HeroSection } from "./HeroSection";
 import { HowItWorks } from "./HowItWorks";
 import { Navbar } from "./Navbar";
@@ -17,10 +17,10 @@ export function HomePage(): ReactElement {
         <HeroSection />
         <UploadArea />
       </section>
-      <FormatGrid />
       <HowItWorks />
       <PrivacySection />
       <FaqAccordion />
+      <CreditSection />
       <Footer />
     </main>
   );
