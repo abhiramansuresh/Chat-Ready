@@ -115,3 +115,11 @@ Secondary: - Copy button usage - Markdown downloads - Repeat visits
 -   Payments
 -   Document history
 -   Collaboration
+
+## Current Frontend UX Update — June 2026
+
+The V1 frontend is now a single responsive landing page. The converter is the
+primary above-the-fold action and results render in place after conversion. The
+upload area supports file tabs, URL tabs, selected-file confirmation before
+conversion, full-page drag overlay, loading state, friendly error state, and a
+Markdown result panel with token savings, preview, copy, and download actions.

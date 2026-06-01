@@ -4,14 +4,15 @@ import type { ApiErrorResponse, ConversionResponse } from "@/types/conversion";
 const ERROR_MESSAGES: Record<string, string> = {
   conversion_failed: "Something went wrong while preparing your document.",
   file_too_large: "Please upload files smaller than 25MB.",
-  invalid_request: "Please check your request and try again.",
-  rate_limit_exceeded: "Too many requests. Please try again shortly.",
+  invalid_request: "Please check the file or URL and try again.",
+  rate_limit_exceeded: "You're converting too quickly. Please wait a moment.",
   unsupported_file: "That format is not supported yet.",
   unsupported_url: "Please enter a valid webpage or YouTube URL.",
 };
 
 const FALLBACK_ERROR_MESSAGE =
   "Something went wrong while preparing your document.";
+const NETWORK_ERROR_MESSAGE = "Could not reach the conversion service.";
 
 export class ApiRequestError extends Error {
   readonly code: string;
@@ -52,17 +53,19 @@ async function requestConversion(
   try {
     response = await fetch(`${apiBaseUrl}${path}`, init);
   } catch {
-    throw new ApiRequestError("network_error", FALLBACK_ERROR_MESSAGE);
+    throw new ApiRequestError("network_error", NETWORK_ERROR_MESSAGE);
   }
 
   const responseBody = await readJson(response);
 
   if (!response.ok) {
-    throw toApiError(responseBody);
+    throw toApiError(response.status, responseBody);
   }
 
-  if (isConversionResponse(responseBody)) {
-    return responseBody;
+  const conversionResponse = normalizeConversionResponse(responseBody);
+
+  if (conversionResponse) {
+    return conversionResponse;
   }
 
   throw new ApiRequestError("invalid_response", FALLBACK_ERROR_MESSAGE);
@@ -76,29 +79,70 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-function toApiError(responseBody: unknown): ApiRequestError {
+function toApiError(status: number, responseBody: unknown): ApiRequestError {
   if (isApiErrorResponse(responseBody)) {
     const message = ERROR_MESSAGES[responseBody.error.code] ?? FALLBACK_ERROR_MESSAGE;
     return new ApiRequestError(responseBody.error.code, message);
   }
 
+  if (status === 400) {
+    return new ApiRequestError("invalid_request", ERROR_MESSAGES.invalid_request);
+  }
+
+  if (status === 413) {
+    return new ApiRequestError("file_too_large", ERROR_MESSAGES.file_too_large);
+  }
+
+  if (status === 415) {
+    return new ApiRequestError("unsupported_file", ERROR_MESSAGES.unsupported_file);
+  }
+
+  if (status === 429) {
+    return new ApiRequestError(
+      "rate_limit_exceeded",
+      ERROR_MESSAGES.rate_limit_exceeded,
+    );
+  }
+
   return new ApiRequestError("unknown_error", FALLBACK_ERROR_MESSAGE);
 }
 
-function isConversionResponse(value: unknown): value is ConversionResponse {
+function normalizeConversionResponse(value: unknown): ConversionResponse | null {
   if (!isRecord(value)) {
-    return false;
+    return null;
   }
 
-  return (
-    value.success === true &&
-    typeof value.markdown === "string" &&
-    typeof value.rawTokenCount === "number" &&
-    typeof value.markdownTokenCount === "number" &&
-    typeof value.reductionPercent === "number" &&
-    typeof value.fileType === "string" &&
-    typeof value.processingTimeMs === "number"
+  const rawTokenCount = readNumber(value, "rawTokenCount", "original_tokens");
+  const markdownTokenCount = readNumber(
+    value,
+    "markdownTokenCount",
+    "converted_tokens",
   );
+  const reductionPercent = readNumber(
+    value,
+    "reductionPercent",
+    "reduction_percentage",
+  );
+
+  if (
+    typeof value.markdown !== "string" ||
+    rawTokenCount === null ||
+    markdownTokenCount === null ||
+    reductionPercent === null
+  ) {
+    return null;
+  }
+
+  return {
+    success: true,
+    markdown: value.markdown,
+    rawTokenCount,
+    markdownTokenCount,
+    reductionPercent,
+    fileType: typeof value.fileType === "string" ? value.fileType : "md",
+    processingTimeMs:
+      typeof value.processingTimeMs === "number" ? value.processingTimeMs : 0,
+  };
 }
 
 function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
@@ -114,4 +158,14 @@ function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function readNumber(
+  value: Record<string, unknown>,
+  camelCaseKey: string,
+  snakeCaseKey: string,
+): number | null {
+  const candidate = value[camelCaseKey] ?? value[snakeCaseKey];
+
+  return typeof candidate === "number" ? candidate : null;
 }
