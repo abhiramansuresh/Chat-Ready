@@ -71,6 +71,8 @@ Request:
 
 Response: Same schema as `/convert`.
 
+Errors: - unsupported_url - conversion_failed - youtube_transcript_unavailable
+
 ### GET /health
 
 Response:
@@ -85,12 +87,16 @@ Response:
 
 1.  Receive file/URL
 2.  Validate type
-3.  Save temp file
-4.  Convert using MarkItDown
-5.  Estimate tokens using tiktoken
-6.  Calculate reduction
-7.  Return markdown
-8.  Delete temporary files
+3.  Save temp files for uploads only
+4.  Convert files and webpages using MarkItDown
+5.  For webpages, compare Markdown tokens against the original fetched page
+    source when available
+6.  For YouTube URLs, convert the transcript when one is available; otherwise
+    return a friendly transcript-unavailable error
+7.  Estimate tokens using tiktoken
+8.  Calculate reduction
+9.  Return markdown
+10. Delete temporary files
 
 ## Token Reduction Formula
 

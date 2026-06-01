@@ -25,6 +25,12 @@ output after conversion.
 Dragging or browsing selects a file first, then the user clicks Convert. This
 prevents accidental uploads while still keeping the flow short.
 
+### Unified File and URL Panel
+
+The URL input now sits at the bottom of the drag-and-drop panel instead of
+behind a separate tab. This keeps both conversion paths ready without causing
+layout jumps when users switch modes.
+
 ### Full-Page Drag Overlay
 
 Dragging a file anywhere over the page shows a large "Drop to convert" overlay.
@@ -53,8 +59,9 @@ page quick movement without adding a complex navigation system.
 ### Token Savings Language
 
 The primary result metric is `~{X}% fewer tokens`. Raw token details are still
-available in the result summary and tooltip, but the first read is plain
-language that non-technical users can understand.
+available in the tooltip, but the first read is plain language that
+non-technical users can understand. Copy and download actions live in the
+Markdown preview header so they stay close to the output.
 
 ### Markdown Ready Fallback
 

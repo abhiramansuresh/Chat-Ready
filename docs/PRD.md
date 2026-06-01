@@ -120,10 +120,12 @@ Secondary: - Copy button usage - Markdown downloads - Repeat visits
 
 The V1 frontend is now a single responsive landing page. The converter is the
 primary above-the-fold action and results render in place after conversion. The
-upload area supports file tabs, URL tabs, selected-file confirmation before
-conversion, full-page drag overlay, loading state, friendly error state, and a
-Markdown result panel with token savings, preview, copy, and download actions.
-The page also keeps a temporary in-browser session history so users can
-download previous conversions individually or export the current session as one
-combined Markdown file. This is not persistent document history and does not
-use accounts or storage.
+upload area uses one unified panel: drag-and-drop file upload is the main
+action, while the URL input sits at the bottom of the same panel. The page
+supports selected-file confirmation before conversion, a full-page drag overlay,
+loading state, friendly error state, and a Markdown result panel with token
+savings, preview, copy, and download actions in the preview header. The page
+also keeps a temporary in-browser session history so users can download previous
+conversions individually or export the current session as one combined Markdown
+file. This is not persistent document history and does not use accounts or
+storage.

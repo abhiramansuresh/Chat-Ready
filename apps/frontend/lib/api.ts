@@ -8,6 +8,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   rate_limit_exceeded: "You're converting too quickly. Please wait a moment.",
   unsupported_file: "That format is not supported yet.",
   unsupported_url: "Please enter a valid webpage or YouTube URL.",
+  youtube_transcript_unavailable:
+    "Could not convert this YouTube video. A public transcript may not be available.",
 };
 
 const FALLBACK_ERROR_MESSAGE =

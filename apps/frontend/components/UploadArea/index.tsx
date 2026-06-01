@@ -17,11 +17,9 @@ import {
 } from "./SessionHistory";
 import { UrlInput } from "./UrlInput";
 
-type ActiveTab = "file" | "url";
 type UploadStatus = "idle" | "loading" | "success" | "error";
 
 export function UploadArea(): ReactElement {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("file");
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [urlValue, setUrlValue] = useState("");
@@ -36,10 +34,6 @@ export function UploadArea(): ReactElement {
 
   const isLoading = status === "loading";
   const showPageDropOverlay = pageDragDepth > 0 && !isLoading;
-  const fileTabId = "upload-area-file-tab";
-  const urlTabId = "upload-area-url-tab";
-  const filePanelId = "upload-area-file-panel";
-  const urlPanelId = "upload-area-url-panel";
 
   useEffect(() => {
     function handleWindowDragEnter(event: DragEvent): void {
@@ -48,7 +42,6 @@ export function UploadArea(): ReactElement {
       }
 
       event.preventDefault();
-      setActiveTab("file");
       setPageDragDepth((currentDepth) => currentDepth + 1);
     }
 
@@ -105,18 +98,7 @@ export function UploadArea(): ReactElement {
     };
   }, [isLoading]);
 
-  function handleTabChange(tab: ActiveTab): void {
-    if (isLoading) {
-      return;
-    }
-
-    setActiveTab(tab);
-    setUrlError(null);
-    setErrorMessage(null);
-  }
-
   function handleFileSelected(file: File): void {
-    setActiveTab("file");
     setResult(null);
     setUrlError(null);
 
@@ -165,6 +147,7 @@ export function UploadArea(): ReactElement {
     setStatus("loading");
     setUrlError(null);
     setErrorMessage(null);
+    setSelectedFile(null);
     setSourceLabel(trimmedUrl);
 
     try {
@@ -177,7 +160,6 @@ export function UploadArea(): ReactElement {
   }
 
   function handleReset(): void {
-    setActiveTab("file");
     setStatus("idle");
     setSelectedFile(null);
     setUrlValue("");
@@ -233,72 +215,26 @@ export function UploadArea(): ReactElement {
         ) : null}
 
         {status === "idle" ? (
-          <>
-            <div
-              className="mb-5 grid grid-cols-2 gap-2 rounded-md bg-slate-100 p-1 dark:bg-slate-950"
-              role="tablist"
-              aria-label="Conversion input type"
-            >
-              <button
-                id={fileTabId}
-                type="button"
-                role="tab"
-                onClick={() => handleTabChange("file")}
-                className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
-                  activeTab === "file"
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                    : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-                }`}
-                aria-selected={activeTab === "file"}
-                aria-controls={filePanelId}
-              >
-                File
-              </button>
-              <button
-                id={urlTabId}
-                type="button"
-                role="tab"
-                onClick={() => handleTabChange("url")}
-                className={`min-h-11 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:focus:ring-white dark:focus:ring-offset-slate-950 ${
-                  activeTab === "url"
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                    : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-                }`}
-                aria-selected={activeTab === "url"}
-                aria-controls={urlPanelId}
-              >
-                URL
-              </button>
-            </div>
-
-            <div
-              id={activeTab === "file" ? filePanelId : urlPanelId}
-              role="tabpanel"
-              aria-labelledby={activeTab === "file" ? fileTabId : urlTabId}
-            >
-              {activeTab === "file" ? (
-                <FileDropZone
-                  disabled={isLoading}
-                  isDragActive={showPageDropOverlay}
-                  selectedFile={selectedFile}
-                  onClearFile={() => setSelectedFile(null)}
-                  onConvertFile={handleConvertFile}
-                  onFileSelected={handleFileSelected}
-                />
-              ) : (
-                <UrlInput
-                  disabled={isLoading}
-                  value={urlValue}
-                  errorMessage={urlError}
-                  onChange={(value) => {
-                    setUrlValue(value);
-                    setUrlError(null);
-                  }}
-                  onConvert={handleConvertUrl}
-                />
-              )}
-            </div>
-          </>
+          <div className="flex flex-col gap-4">
+            <FileDropZone
+              disabled={isLoading}
+              isDragActive={showPageDropOverlay}
+              selectedFile={selectedFile}
+              onClearFile={() => setSelectedFile(null)}
+              onConvertFile={handleConvertFile}
+              onFileSelected={handleFileSelected}
+            />
+            <UrlInput
+              disabled={isLoading}
+              value={urlValue}
+              errorMessage={urlError}
+              onChange={(value) => {
+                setUrlValue(value);
+                setUrlError(null);
+              }}
+              onConvert={handleConvertUrl}
+            />
+          </div>
         ) : null}
       </section>
       <SessionHistory

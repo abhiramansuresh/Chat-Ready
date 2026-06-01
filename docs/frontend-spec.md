@@ -30,18 +30,19 @@ Headline: **Make your documents AI-ready**
 Subheading: Convert PDFs, Docs, Slides, Sheets, Images, Videos and
 webpages into clean Markdown for AI.
 
-CTA: - Upload File - Paste URL
+CTA: - Drag or upload a file - Paste a URL
 
 Trust Text: - No AI processing - Auto-delete after conversion
 
 ## Upload Component
 
-Supported: - Drag & drop - Click upload
+Supported: - Drag & drop - Click upload - Paste URL
 
 Accepted formats: PDF, DOCX, TXT, MD, RTF, PPTX, XLSX, CSV, JSON, XML,
 HTML, PNG, JPG, JPEG, WEBP
 
-URL input: - YouTube - webpage/article
+URL input: - Sits at the bottom of the main upload panel - YouTube -
+webpage/article
 
 Max upload: 25MB (configurable)
 
@@ -51,14 +52,14 @@ Loading copy: "Preparing your document..."
 
 ## Result Page
 
-Desktop: 2-column layout
+Desktop: Single result panel
 
-Left: - Markdown preview - Syntax formatting - Scrollable viewer
+Main area: - Markdown preview - Syntax formatting - Scrollable viewer
 
-Right: Stats card
+Header: - Token savings percentage - Copy Markdown - Download .md
 
-Stats: - Estimated tokens - Raw token count - Markdown token count -
-Reduction % - File type - Processing time
+Tooltip: - Original token estimate - Markdown token estimate - Savings
+calculation note
 
 Actions: - Copy Markdown - Download .md - Convert another file
 
@@ -69,6 +70,9 @@ Unsupported file: "That format is not supported yet."
 File too large: "Please upload files smaller than 25MB."
 
 Processing error: "Something went wrong while preparing your document."
+
+YouTube transcript unavailable: "Could not convert this YouTube video. A
+public transcript may not be available."
 
 ## Accessibility
 
@@ -160,7 +164,6 @@ error
 
 ### File Upload Behaviour
 
-- File tab is the default active tab.
 - Dragging a file anywhere over the page shows a full-page "Drop to convert"
   overlay with a transparent center area and dashed border.
 - Dropping or browsing selects the file but does not auto-submit.
@@ -171,7 +174,8 @@ error
 
 ### URL Behaviour
 
-- URL tab uses a controlled input and React event handlers only.
+- URL input is always visible at the bottom of the upload panel.
+- URL input uses a controlled input and React event handlers only.
 - No HTML `<form>` element is used.
 - Client-side validation requires an `http:` or `https:` URL.
 - Invalid URLs show inline errors without leaving the idle state.
@@ -182,10 +186,10 @@ error
   scroll away.
 - Top row shows either `~{X}% fewer tokens` or `Markdown ready` when reduction
   is zero or negative.
-- Original and converted token estimates appear under the headline stat.
-- Token estimation tooltip explains `cl100k_base`.
+- Original and converted token estimates appear only in the savings tooltip.
 - Markdown preview is a scrollable monospace code block.
-- Actions: Copy Markdown, Download `.md`, Convert another file.
+- Copy Markdown and Download `.md` sit in the Markdown preview header.
+- Convert another file sits below the preview.
 - Download filename is derived from the source filename or URL slug.
 
 ### Session History
