@@ -26,6 +26,7 @@ from app.core.errors import (
 
 URL_FETCH_TIMEOUT_SECONDS = 15
 YOUTUBE_VIDEO_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,}$")
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,8 @@ class MarkdownConverter:
         self._converter = MarkItDown()
 
     def convert_file(self, path: Path, file_type: str) -> ConvertedDocument:
+        if path.suffix.lower() in IMAGE_EXTENSIONS:
+            return self._convert_image(path, file_type)
         return self._convert(source=path, file_type=file_type)
 
     def convert_url(self, url: str) -> ConvertedDocument:
@@ -53,6 +56,51 @@ class MarkdownConverter:
             file_type="url",
             raw_text_override=raw_text,
             use_url_converter=True,
+        )
+
+    def _convert_image(self, path: Path, file_type: str) -> ConvertedDocument:
+        started_at = perf_counter()
+
+        try:
+            import pytesseract
+            from PIL import Image
+
+            image = Image.open(path)
+            ocr_text = pytesseract.image_to_string(image).strip()
+        except ImportError:
+            raise ChatReadyError(
+                code="unsupported_file",
+                message=(
+                    "Image conversion requires Tesseract OCR, which is not installed "
+                    "on this server. Please convert your image to a PDF or text file first."
+                ),
+                status_code=415,
+            )
+        except Exception as error:
+            raise ChatReadyError(
+                code="conversion_failed",
+                message=FRIENDLY_CONVERSION_ERROR,
+                status_code=500,
+            ) from error
+
+        if not ocr_text:
+            raise ChatReadyError(
+                code="conversion_failed",
+                message=(
+                    "No text could be extracted from this image. "
+                    "The image may contain no readable text, or the text may be too small or low contrast."
+                ),
+                status_code=500,
+            )
+
+        processing_time_ms = round((perf_counter() - started_at) * 1000)
+        markdown = f"<!-- Extracted via OCR -->\n\n{ocr_text}"
+
+        return ConvertedDocument(
+            markdown=markdown,
+            raw_text=ocr_text,
+            file_type=file_type,
+            processing_time_ms=processing_time_ms,
         )
 
     def _convert(

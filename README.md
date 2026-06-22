@@ -77,6 +77,7 @@ chatready/
 - Node.js 20+
 - Python 3.13
 - `pip` and `venv`
+- Tesseract OCR (for image conversion): `brew install tesseract` on macOS, `apt-get install tesseract-ocr` on Linux
 
 ### 1. Clone the repo
 
@@ -141,7 +142,7 @@ The frontend runs at `http://localhost:3000`.
 
 1. Create a new **Web Service** on [Render](https://render.com), pointing to `apps/backend` as the root directory.
 2. Set the build and start commands:
-   - **Build command:** `pip install -r requirements.txt`
+   - **Build command:** `apt-get install -y tesseract-ocr && pip install -r requirements.txt`
    - **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 3. Add your environment variables in the Render dashboard (see table above).
 4. The repo includes `apps/backend/.python-version` (`3.13.3`) so Render picks up the correct Python version automatically.
