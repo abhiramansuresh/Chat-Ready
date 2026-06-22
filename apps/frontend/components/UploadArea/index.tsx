@@ -209,7 +209,10 @@ export function UploadArea(): ReactElement {
         {status === "loading" ? <LoadingState /> : null}
 
         {status === "error" && errorMessage ? (
-          <ErrorState message={errorMessage} onTryAgain={handleReset} />
+          <ErrorState
+            message={errorMessage}
+            onTryAgain={selectedFile ? handleConvertFile : handleConvertUrl}
+          />
         ) : null}
 
         {status === "success" && result ? (
