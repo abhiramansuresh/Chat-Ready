@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import io
 from pathlib import Path
 import re
 from time import perf_counter
@@ -50,13 +51,14 @@ class MarkdownConverter:
         if _is_youtube_url(url):
             return self._convert_youtube(url)
 
-        raw_text = _fetch_url_source(url)
-        return self._convert(
-            source=url,
-            file_type="url",
-            raw_text_override=raw_text,
-            use_url_converter=True,
-        )
+        html = _fetch_url_html(url)
+        if html is None:
+            raise ChatReadyError(
+                code="conversion_failed",
+                message=FRIENDLY_URL_ERROR,
+                status_code=422,
+            )
+        return self._convert(source=html, file_type="url")
 
     def _convert_image(self, path: Path, file_type: str) -> ConvertedDocument:
         started_at = perf_counter()
@@ -107,14 +109,15 @@ class MarkdownConverter:
         self,
         source: str | Path,
         file_type: str,
-        raw_text_override: str | None = None,
-        use_url_converter: bool = False,
     ) -> ConvertedDocument:
         started_at = perf_counter()
 
         try:
-            if use_url_converter and isinstance(source, str):
-                result = self._converter.convert_url(source)
+            if isinstance(source, str):
+                # source is raw HTML content — pass as a stream so MarkItDown
+                # parses it directly without making any network requests
+                stream = io.BytesIO(source.encode("utf-8"))
+                result = self._converter.convert(stream, file_extension=".html")
             else:
                 result = self._converter.convert(source)
         except Exception as error:
@@ -126,7 +129,7 @@ class MarkdownConverter:
 
         processing_time_ms = round((perf_counter() - started_at) * 1000)
         markdown = (result.markdown or result.text_content or "").strip()
-        raw_text = (raw_text_override or result.text_content or markdown).strip()
+        raw_text = (result.text_content or markdown).strip()
 
         if not markdown:
             raise ChatReadyError(
@@ -163,7 +166,7 @@ class MarkdownConverter:
                 status_code=422,
             ) from error
 
-        raw_text = _fetch_url_source(url) or transcript_text
+        raw_text = _fetch_url_html(url) or transcript_text
         processing_time_ms = round((perf_counter() - started_at) * 1000)
         markdown = (
             "# YouTube transcript\n\n"
@@ -179,11 +182,18 @@ class MarkdownConverter:
         )
 
 
-def _fetch_url_source(url: str) -> str | None:
+def _fetch_url_html(url: str) -> str | None:
     try:
         response = requests.get(
             url,
-            headers={"User-Agent": "ChatReady/1.0"},
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (compatible; ChatReady/1.0; "
+                    "+https://github.com/abhiramansuresh/Chat-Ready)"
+                ),
+                "Accept": "text/html,application/xhtml+xml,*/*;q=0.9",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
             timeout=URL_FETCH_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
