@@ -67,10 +67,8 @@ class MarkdownConverter:
         started_at = perf_counter()
 
         try:
-            from pdf2image import convert_from_path
+            from pdf2image import convert_from_path, pdfinfo_from_path
             import pytesseract
-
-            images = convert_from_path(path, dpi=200)
         except ImportError:
             raise ChatReadyError(
                 code="unsupported_file",
@@ -80,18 +78,38 @@ class MarkdownConverter:
                 ),
                 status_code=415,
             )
+
+        try:
+            info = pdfinfo_from_path(str(path))
+            page_count = int(info.get("Pages", 0))
+        except Exception:
+            page_count = 99
+
+        MAX_PAGES = 20
+        pages_to_process = min(page_count, MAX_PAGES)
+        pages_text: list[str] = []
+
+        try:
+            for page_num in range(1, pages_to_process + 1):
+                # Load one page at a time — avoids holding all pages in RAM
+                images = convert_from_path(
+                    path,
+                    dpi=150,
+                    grayscale=True,
+                    first_page=page_num,
+                    last_page=page_num,
+                )
+                if images:
+                    text = pytesseract.image_to_string(images[0]).strip()
+                    if text:
+                        pages_text.append(f"## Page {page_num}\n\n{text}")
+                    del images  # free memory before next page
         except Exception as error:
             raise ChatReadyError(
                 code="conversion_failed",
                 message=FRIENDLY_CONVERSION_ERROR,
                 status_code=500,
             ) from error
-
-        pages_text: list[str] = []
-        for i, image in enumerate(images, 1):
-            text = pytesseract.image_to_string(image).strip()
-            if text:
-                pages_text.append(f"## Page {i}\n\n{text}")
 
         if not pages_text:
             raise ChatReadyError(
@@ -103,8 +121,13 @@ class MarkdownConverter:
                 status_code=500,
             )
 
+        truncation_note = (
+            f"\n\n---\n_Note: Only the first {MAX_PAGES} of {page_count} pages were processed._"
+            if page_count > MAX_PAGES
+            else ""
+        )
         ocr_text = "\n\n".join(pages_text)
-        markdown = f"<!-- Extracted via OCR (scanned PDF) -->\n\n{ocr_text}"
+        markdown = f"<!-- Extracted via OCR (scanned PDF) -->\n\n{ocr_text}{truncation_note}"
         processing_time_ms = round((perf_counter() - started_at) * 1000)
 
         return ConvertedDocument(
