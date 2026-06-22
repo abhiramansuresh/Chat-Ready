@@ -1,7 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background -->
   <rect width="64" height="64" rx="14" fill="#0f172a"/>
-  <path d="M19 14h19l9 9v27H19V14z" fill="#f8fafc"/>
-  <path d="M38 14v10h9" fill="#cbd5e1"/>
-  <path d="M26 33h12M26 40h9" stroke="#0f766e" stroke-width="4" stroke-linecap="round"/>
-  <path d="M17 50l7-3 3-7" fill="none" stroke="#14b8a6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Document body -->
+  <path d="M15 11 H37 L49 23 V53 H15 Z" fill="#f1f5f9" rx="2"/>
+  <!-- Dog-ear fold -->
+  <path d="M37 11 L49 23 H37 Z" fill="#94a3b8"/>
+  <!-- Teal lines (Markdown content) -->
+  <rect x="21" y="31" width="22" height="5" rx="2.5" fill="#0d9488"/>
+  <rect x="21" y="40" width="15" height="5" rx="2.5" fill="#0d9488"/>
 </svg>

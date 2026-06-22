@@ -17,9 +17,7 @@ export function HomePage(): ReactElement {
       {/* Hero + upload above the fold */}
       <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 pb-16 pt-12 sm:px-6">
         <HeroSection />
-        <div className="w-full max-w-2xl">
-          <UploadArea />
-        </div>
+        <UploadArea />
       </section>
 
       <HowItWorks />

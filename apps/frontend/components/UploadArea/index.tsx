@@ -99,6 +99,7 @@ export function UploadArea(): ReactElement {
   }, [isLoading]);
 
   function handleFileSelected(file: File): void {
+    setPageDragDepth(0);
     setResult(null);
     setUrlError(null);
 
@@ -192,7 +193,7 @@ export function UploadArea(): ReactElement {
   }
 
   return (
-    <div id="upload" className="w-full scroll-mt-24">
+    <div id="upload" className={`w-full scroll-mt-24 ${status === "success" ? "max-w-4xl" : "max-w-2xl"}`}>
       <section
         className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-md transition dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         aria-label="Convert your document to AI-ready Markdown"
@@ -210,6 +211,7 @@ export function UploadArea(): ReactElement {
           <ResultsPanel
             result={result}
             sourceLabel={sourceLabel}
+            originalFileSizeBytes={selectedFile?.size}
             onReset={handleReset}
           />
         ) : null}

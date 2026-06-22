@@ -5,24 +5,42 @@ import { useState } from "react";
 
 import type { ConversionResponse } from "@/types/conversion";
 
-import {
-  downloadMarkdownFile,
-  formatNumber,
-} from "./downloads";
+import { downloadMarkdownFile, formatNumber } from "./downloads";
+
+const HIGH_TOKEN_THRESHOLD = 50_000;
+const REDUCTION_THRESHOLD_PERCENT = 5;
 
 interface ResultsPanelProps {
   readonly result: ConversionResponse;
   readonly sourceLabel: string;
+  readonly originalFileSizeBytes?: number;
   readonly onReset: () => void;
 }
 
 export function ResultsPanel({
   result,
   sourceLabel,
+  originalFileSizeBytes,
   onReset,
 }: ResultsPanelProps): ReactElement {
   const [copyLabel, setCopyLabel] = useState<"copy" | "copied" | "failed">("copy");
   const previewText = result.markdown.trim() || "No content was extracted.";
+
+  const isHighTokenCount = result.markdownTokenCount > HIGH_TOKEN_THRESHOLD;
+
+  // Tier 1: token reduction
+  const tokenReductionPercent = result.reductionPercent;
+  const hasTokenReduction = tokenReductionPercent > REDUCTION_THRESHOLD_PERCENT;
+
+  // Tier 2: file size reduction (only meaningful when we have the original file size)
+  const markdownSizeBytes = new TextEncoder().encode(result.markdown).byteLength;
+  const fileSizeReductionPercent =
+    originalFileSizeBytes && originalFileSizeBytes > 0
+      ? ((originalFileSizeBytes - markdownSizeBytes) / originalFileSizeBytes) * 100
+      : 0;
+  const hasFileSizeReduction =
+    !hasTokenReduction &&
+    fileSizeReductionPercent > REDUCTION_THRESHOLD_PERCENT;
 
   async function handleCopy(): Promise<void> {
     try {
@@ -39,43 +57,59 @@ export function ResultsPanel({
     downloadMarkdownFile({ markdown: result.markdown, sourceLabel });
   }
 
-  const hasReduction = result.reductionPercent > 5;
-
   return (
-    <div className="flex flex-col gap-0 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       {/* Success header */}
-      <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-start sm:justify-between dark:border-slate-800">
+      <div className="flex flex-col gap-3 border-b border-slate-100 p-5 dark:border-slate-800">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
             <CheckIcon />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-400">
               Ready for AI
             </p>
             <h2 className="mt-0.5 text-xl font-bold text-slate-950 dark:text-white">
-              {hasReduction
-                ? `~${Math.round(result.reductionPercent)}% less data for AI to process`
-                : "Your document is converted"}
+              Your document is converted
             </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {hasReduction
-                ? "Formatting and markup were stripped — the AI sees only clean, structured text."
-                : "The content has been converted to Markdown — the format AI tools read most accurately."}
-            </p>
           </div>
         </div>
 
-        {/* Token stats */}
-        <div className="flex shrink-0 gap-3 text-center sm:flex-col sm:gap-1">
-          <StatChip label="Before" value={`~${formatNumber(result.rawTokenCount)} tokens`} />
-          <StatChip label="After" value={`~${formatNumber(result.markdownTokenCount)} tokens`} muted={!hasReduction} />
-        </div>
+        {/* Stat row — only shown when there's something meaningful to display */}
+        {hasTokenReduction ? (
+          <StatRow
+            label="Token reduction"
+            before={`~${formatNumber(result.rawTokenCount)} tokens`}
+            after={`~${formatNumber(result.markdownTokenCount)} tokens`}
+            badge={`~${Math.round(tokenReductionPercent)}% less`}
+          />
+        ) : hasFileSizeReduction ? (
+          <StatRow
+            label="File size reduction"
+            before={formatBytes(originalFileSizeBytes!)}
+            after={formatBytes(markdownSizeBytes)}
+            badge={`~${Math.round(fileSizeReductionPercent)}% smaller`}
+          />
+        ) : null}
       </div>
 
-      {/* "What to do next" guidance */}
-      <div className="flex items-start gap-3 bg-blue-50 px-5 py-3 dark:bg-blue-950/20">
-        <span className="mt-0.5 text-blue-600 dark:text-blue-400"><InfoIcon /></span>
+      {/* High token count warning */}
+      {isHighTokenCount ? (
+        <div className="flex items-start gap-3 border-b border-amber-100 bg-amber-50 px-5 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
+          <span className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400">
+            <WarningIcon />
+          </span>
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            <strong>Large document:</strong> ~{formatNumber(result.markdownTokenCount)} tokens may exceed the limit of some AI tools. Free ChatGPT allows ~32k tokens. If the AI cuts off your content, try splitting the document into smaller sections.
+          </p>
+        </div>
+      ) : null}
+
+      {/* What to do next */}
+      <div className="flex items-start gap-3 border-b border-blue-100 bg-blue-50 px-5 py-3 dark:border-blue-900/30 dark:bg-blue-950/20">
+        <span className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400">
+          <InfoIcon />
+        </span>
         <p className="text-sm text-blue-800 dark:text-blue-300">
           <strong>What to do next:</strong> Copy the text below and paste it into ChatGPT, Claude, Gemini, or any AI chat to get much more accurate answers.
         </p>
@@ -106,7 +140,7 @@ export function ResultsPanel({
         </button>
       </div>
 
-      {/* Markdown preview */}
+      {/* Preview */}
       <div className="p-5">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Preview
@@ -131,25 +165,33 @@ export function ResultsPanel({
   );
 }
 
-function StatChip({
-  label,
-  value,
-  muted = false,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-}): ReactElement {
+interface StatRowProps {
+  readonly label: string;
+  readonly before: string;
+  readonly after: string;
+  readonly badge: string;
+}
+
+function StatRow({ label, before, after, badge }: StatRowProps): ReactElement {
   return (
-    <div className={`rounded-lg border px-3 py-1.5 text-center ${muted ? "border-slate-100 dark:border-slate-800" : "border-slate-200 dark:border-slate-700"}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
         {label}
-      </p>
-      <p className={`text-sm font-semibold ${muted ? "text-slate-400 dark:text-slate-500" : "text-slate-950 dark:text-white"}`}>
-        {value}
-      </p>
+      </span>
+      <span className="text-sm text-slate-500 dark:text-slate-400">{before}</span>
+      <span className="text-slate-300 dark:text-slate-600">&rarr;</span>
+      <span className="text-sm font-semibold text-slate-950 dark:text-white">{after}</span>
+      <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+        {badge}
+      </span>
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function CheckIcon(): ReactElement {
@@ -182,6 +224,14 @@ function InfoIcon(): ReactElement {
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 8h.01M12 11v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WarningIcon(): ReactElement {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <path d="M10.3 4.4 2.9 17.2A2 2 0 0 0 4.6 20h14.8a2 2 0 0 0 1.7-2.8L13.7 4.4a2 2 0 0 0-3.4 0ZM12 9v4m0 4h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
