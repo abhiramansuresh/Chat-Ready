@@ -192,10 +192,10 @@ export function UploadArea(): ReactElement {
   }
 
   return (
-    <div id="upload" className="mx-auto w-full max-w-4xl scroll-mt-24">
+    <div id="upload" className="w-full scroll-mt-24">
       <section
-        className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition dark:border-slate-800 dark:bg-slate-900 sm:p-5"
-        aria-label="Convert content to Markdown"
+        className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-md transition dark:border-slate-800 dark:bg-slate-900 sm:p-6"
+        aria-label="Convert your document to AI-ready Markdown"
         aria-busy={isLoading}
       >
         {showPageDropOverlay ? <PageDropOverlay /> : null}

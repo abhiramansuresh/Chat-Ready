@@ -13,10 +13,15 @@ export function HomePage(): ReactElement {
   return (
     <main id="top" className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-950 dark:bg-slate-950">
       <Navbar />
-      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-4 pb-12 pt-10 sm:px-6 lg:min-h-[calc(100vh-4rem)] lg:justify-center lg:pb-16 lg:pt-12">
+
+      {/* Hero + upload above the fold */}
+      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 pb-16 pt-12 sm:px-6">
         <HeroSection />
-        <UploadArea />
+        <div className="w-full max-w-2xl">
+          <UploadArea />
+        </div>
       </section>
+
       <HowItWorks />
       <PrivacySection />
       <FaqAccordion />

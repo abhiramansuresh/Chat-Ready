@@ -2,47 +2,51 @@ import type { ReactElement } from "react";
 
 const PRIVACY_POINTS = [
   {
-    title: "No AI processing",
-    copy: "Your content is converted, not sent to an AI model.",
+    title: "No AI reads your files",
+    copy: "ChatReady converts your document — it does not send it to any AI model for processing.",
   },
   {
-    title: "No file storage",
-    copy: "Uploads are handled as temporary processing files only.",
+    title: "Nothing is stored",
+    copy: "Your file is written to temporary storage for the conversion only. We never keep a copy.",
   },
   {
-    title: "Auto-deleted after conversion",
-    copy: "Temporary files are removed after the Markdown is created.",
+    title: "Deleted right after",
+    copy: "The temporary file is removed the moment your Markdown is ready.",
   },
   {
-    title: "Nothing is logged",
-    copy: "File contents and Markdown output are never written to logs.",
+    title: "No account needed",
+    copy: "No sign-up, no email, no tracking. Just upload, convert, and go.",
   },
 ];
 
 export function PrivacySection(): ReactElement {
   return (
-    <section id="privacy" className="scroll-mt-24 bg-white dark:bg-slate-900" aria-labelledby="privacy-heading">
-      <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
-        <div className="max-w-3xl">
+    <section
+      id="privacy"
+      className="scroll-mt-24 bg-white dark:bg-slate-900"
+      aria-labelledby="privacy-heading"
+    >
+      <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
+        <div className="max-w-2xl">
           <h2
             id="privacy-heading"
-            className="text-2xl font-semibold text-slate-950 dark:text-white"
+            className="text-2xl font-bold text-slate-950 sm:text-3xl dark:text-white"
           >
-            Privacy and trust
+            Your privacy, guaranteed
           </h2>
-          <p className="mt-3 text-base leading-7 text-slate-700 dark:text-slate-300">
-            ChatReady prepares content for AI tools. It does not chat with your
-            files, summarize them, or keep a document history.
+          <p className="mt-3 text-base leading-7 text-slate-600 dark:text-slate-300">
+            ChatReady prepares your content for AI — it never reads, stores, or
+            shares what is inside your files.
           </p>
         </div>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PRIVACY_POINTS.map((point) => (
             <li
               key={point.title}
-              className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950"
             >
-              <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300">
-                <TrustIcon />
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300">
+                <ShieldCheckIcon />
               </div>
               <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                 {point.title}
@@ -58,7 +62,7 @@ export function PrivacySection(): ReactElement {
   );
 }
 
-function TrustIcon(): ReactElement {
+function ShieldCheckIcon(): ReactElement {
   return (
     <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
       <path
