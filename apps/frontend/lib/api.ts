@@ -15,6 +15,10 @@ const ERROR_MESSAGES: Record<string, string> = {
 const FALLBACK_ERROR_MESSAGE =
   "Something went wrong while preparing your document.";
 const NETWORK_ERROR_MESSAGE = "Could not reach the conversion service.";
+const TIMEOUT_ERROR_MESSAGE =
+  "Conversion is taking too long — this can happen with large scanned PDFs on the free server. Try a smaller file, or split a large PDF into sections before uploading.";
+
+const REQUEST_TIMEOUT_MS = 120_000; // 2 minutes
 
 export class ApiRequestError extends Error {
   readonly code: string;
@@ -53,8 +57,21 @@ async function requestConversion(
   let response: Response;
 
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, init);
-  } catch {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      response = await fetch(`${apiBaseUrl}${path}`, {
+        ...init,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiRequestError("timeout", TIMEOUT_ERROR_MESSAGE);
+    }
     throw new ApiRequestError("network_error", NETWORK_ERROR_MESSAGE);
   }
 

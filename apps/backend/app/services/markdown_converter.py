@@ -85,7 +85,7 @@ class MarkdownConverter:
         except Exception:
             page_count = 99
 
-        MAX_PAGES = 20
+        MAX_PAGES = 10
         pages_to_process = min(page_count, MAX_PAGES)
         pages_text: list[str] = []
 
@@ -94,7 +94,7 @@ class MarkdownConverter:
                 # Load one page at a time — avoids holding all pages in RAM
                 images = convert_from_path(
                     path,
-                    dpi=150,
+                    dpi=100,
                     grayscale=True,
                     first_page=page_num,
                     last_page=page_num,
