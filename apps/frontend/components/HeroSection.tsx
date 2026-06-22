@@ -2,15 +2,18 @@ import type { ReactElement } from "react";
 
 export function HeroSection(): ReactElement {
   return (
-    <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
-      <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-300">
+    <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center animate-fade-in-up">
+      <div className="animate-float inline-flex items-center gap-2 rounded-full border border-teal-300 bg-gradient-to-r from-teal-50 to-cyan-50 px-3 py-1 text-xs font-semibold text-teal-700 shadow-sm dark:border-teal-900 dark:from-teal-950 dark:to-teal-950 dark:text-teal-300">
         <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
         Free · No sign-up required
       </div>
 
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 animate-fade-in-up animate-delay-100">
         <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-950 sm:text-5xl dark:text-white">
-          Get your files ready for AI
+          Get your files{" "}
+          <span className="bg-gradient-to-r from-teal-600 to-cyan-500 bg-clip-text text-transparent dark:from-teal-400 dark:to-cyan-400">
+            ready for AI
+          </span>
         </h1>
         <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8 dark:text-slate-300">
           Upload a PDF, Word doc, spreadsheet, image, or web link.
@@ -21,7 +24,7 @@ export function HeroSection(): ReactElement {
         </p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-3 text-sm">
+      <div className="flex flex-wrap justify-center gap-3 text-sm animate-fade-in-up animate-delay-200">
         <TrustBadge icon={<ShieldIcon />} text="Your files are never stored" />
         <TrustBadge icon={<LockIcon />} text="No AI reads your content" />
         <TrustBadge icon={<TrashIcon />} text="Deleted right after conversion" />
@@ -32,7 +35,7 @@ export function HeroSection(): ReactElement {
 
 function TrustBadge({ icon, text }: { icon: ReactElement; text: string }): ReactElement {
   return (
-    <span className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+    <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-slate-600 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
       {icon}
       {text}
     </span>

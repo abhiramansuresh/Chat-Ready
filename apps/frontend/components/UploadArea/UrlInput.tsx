@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent, ReactElement } from "react";
+import type { FocusEvent, KeyboardEvent, ReactElement } from "react";
 
 interface UrlInputProps {
   readonly disabled: boolean;
@@ -17,9 +17,24 @@ export function UrlInput({
   onChange,
   onConvert,
 }: UrlInputProps): ReactElement {
+  function normalizeUrl(raw: string): string {
+    const trimmed = raw.trim();
+    if (!trimmed) return trimmed;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  }
+
+  function handleBlur(event: FocusEvent<HTMLInputElement>): void {
+    const normalized = normalizeUrl(event.target.value);
+    if (normalized !== event.target.value) {
+      onChange(normalized);
+    }
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
     if (event.key === "Enter") {
       event.preventDefault();
+      onChange(normalizeUrl(value));
       onConvert();
     }
   }
@@ -48,6 +63,7 @@ export function UrlInput({
             disabled={disabled}
             autoComplete="url"
             onChange={(event) => onChange(event.target.value)}
+            onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             aria-invalid={Boolean(errorMessage)}
             aria-describedby={errorMessage ? "url-input-error" : undefined}

@@ -141,7 +141,7 @@ export function FileDropZone({
             type="button"
             onClick={openFilePicker}
             disabled={disabled}
-            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
+            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:scale-[1.03] hover:bg-slate-800 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
           >
             <FolderIcon />
             Choose a file
@@ -195,7 +195,7 @@ function SelectedFilePanel({
         type="button"
         onClick={onConvertFile}
         disabled={disabled}
-        className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-teal-500 dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950 dark:disabled:bg-slate-700"
+        className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-teal-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-teal-500 dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950 dark:disabled:bg-slate-700"
       >
         <SparkleIcon />
         Make it AI-ready

@@ -10,7 +10,7 @@ const NAV_ITEMS = [
 
 export function Navbar(): ReactElement {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+    <header className="sticky top-0 z-40 border-b border-teal-100 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
       <div className="mx-auto flex min-h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <a
           href="#top"
@@ -32,7 +32,7 @@ export function Navbar(): ReactElement {
           <ThemeToggle />
           <a
             href="#upload"
-            className="ml-1 inline-flex min-h-9 items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
+            className="ml-1 inline-flex min-h-9 items-center justify-center rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:scale-[1.04] hover:bg-teal-700 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 dark:bg-teal-500 dark:text-white dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950"
           >
             Convert now
           </a>

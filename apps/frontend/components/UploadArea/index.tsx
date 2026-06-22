@@ -134,7 +134,8 @@ export function UploadArea(): ReactElement {
   }
 
   async function handleConvertUrl(): Promise<void> {
-    const trimmedUrl = urlValue.trim();
+    const raw = urlValue.trim();
+    const trimmedUrl = /^https?:\/\//i.test(raw) ? raw : raw ? `https://${raw}` : raw;
 
     if (isLoading) {
       return;
