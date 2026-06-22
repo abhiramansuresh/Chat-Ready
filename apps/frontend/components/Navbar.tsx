@@ -1,5 +1,7 @@
 import type { ReactElement } from "react";
 
+import { ThemeToggle } from "./ThemeToggle";
+
 const NAV_ITEMS = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#privacy", label: "Privacy" },
@@ -27,9 +29,10 @@ export function Navbar(): ReactElement {
               {item.label}
             </a>
           ))}
+          <ThemeToggle />
           <a
             href="#upload"
-            className="ml-2 inline-flex min-h-9 items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
+            className="ml-1 inline-flex min-h-9 items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
           >
             Convert now
           </a>

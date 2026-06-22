@@ -32,10 +32,10 @@ export function UrlInput({
             htmlFor="url-input"
             className="text-sm font-semibold text-slate-950 dark:text-white"
           >
-            Or paste a link instead
+            Or paste a webpage link
           </label>
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            Works with any webpage or YouTube video
+            Works with any public webpage
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -44,7 +44,7 @@ export function UrlInput({
             name="url"
             type="url"
             value={value}
-            placeholder="https://example.com/article  or  youtube.com/watch?v=..."
+            placeholder="https://example.com/article"
             disabled={disabled}
             autoComplete="url"
             onChange={(event) => onChange(event.target.value)}

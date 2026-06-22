@@ -86,7 +86,7 @@ export function FileDropZone({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <input
         ref={inputRef}
         id="file-input"
@@ -105,6 +105,7 @@ export function FileDropZone({
           onConvertFile={onConvertFile}
         />
       ) : (
+
         <div
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
@@ -148,7 +149,6 @@ export function FileDropZone({
         </div>
       )}
 
-      <SupportedFormats />
     </div>
   );
 }
@@ -204,7 +204,7 @@ function SelectedFilePanel({
   );
 }
 
-function SupportedFormats(): ReactElement {
+export function SupportedFormats(): ReactElement {
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">

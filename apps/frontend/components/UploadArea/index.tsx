@@ -8,7 +8,7 @@ import { maxUploadSizeBytes, maxUploadSizeMb } from "@/lib/env";
 import type { ConversionResponse } from "@/types/conversion";
 
 import { ErrorState } from "./ErrorState";
-import { FileDropZone } from "./FileDropZone";
+import { FileDropZone, SupportedFormats } from "./FileDropZone";
 import { LoadingState } from "./LoadingState";
 import { ResultsPanel } from "./ResultsPanel";
 import {
@@ -141,7 +141,7 @@ export function UploadArea(): ReactElement {
     }
 
     if (!isValidUrl(trimmedUrl)) {
-      setUrlError("Enter a valid webpage or YouTube URL.");
+      setUrlError("Enter a valid webpage URL.");
       return;
     }
 
@@ -193,7 +193,11 @@ export function UploadArea(): ReactElement {
   }
 
   return (
-    <div id="upload" className={`w-full scroll-mt-24 ${status === "success" ? "max-w-4xl" : "max-w-2xl"}`}>
+    <div
+      id="upload"
+      className="w-full scroll-mt-24 transition-[max-width] duration-500 ease-in-out"
+      style={{ maxWidth: status === "success" ? "56rem" : "42rem" }}
+    >
       <section
         className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-md transition dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         aria-label="Convert your document to AI-ready Markdown"
@@ -236,6 +240,7 @@ export function UploadArea(): ReactElement {
               }}
               onConvert={handleConvertUrl}
             />
+            <SupportedFormats />
           </div>
         ) : null}
       </section>
