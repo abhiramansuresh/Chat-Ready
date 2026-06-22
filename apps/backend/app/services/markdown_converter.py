@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import io
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 from time import perf_counter
 from urllib.parse import parse_qs, urlparse
 from warnings import catch_warnings, filterwarnings
@@ -65,51 +67,69 @@ class MarkdownConverter:
 
     def _convert_scanned_pdf(self, path: Path) -> ConvertedDocument:
         started_at = perf_counter()
+        MAX_PAGES = 10
+        PAGE_TIMEOUT = 30  # seconds per page
 
+        # Get page count via pdfinfo (part of poppler-utils, already installed)
         try:
-            from pdf2image import convert_from_path, pdfinfo_from_path
-            import pytesseract
-        except ImportError:
-            raise ChatReadyError(
-                code="unsupported_file",
-                message=(
-                    "This PDF appears to be scanned (no selectable text). "
-                    "Converting scanned PDFs requires additional tools not available on this server."
-                ),
-                status_code=415,
+            result = subprocess.run(
+                ["pdfinfo", str(path)],
+                capture_output=True, text=True, timeout=10,
             )
-
-        try:
-            info = pdfinfo_from_path(str(path))
-            page_count = int(info.get("Pages", 0))
+            page_count = 0
+            for line in result.stdout.splitlines():
+                if line.lower().startswith("pages:"):
+                    page_count = int(line.split(":")[1].strip())
+                    break
         except Exception:
             page_count = 99
 
-        MAX_PAGES = 10
-        pages_to_process = min(page_count, MAX_PAGES)
+        pages_to_process = min(max(page_count, 1), MAX_PAGES)
         pages_text: list[str] = []
 
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             for page_num in range(1, pages_to_process + 1):
-                # Load one page at a time — avoids holding all pages in RAM
-                images = convert_from_path(
-                    path,
-                    dpi=100,
-                    grayscale=True,
-                    first_page=page_num,
-                    last_page=page_num,
-                )
-                if images:
-                    text = pytesseract.image_to_string(images[0]).strip()
+                img_prefix = f"{tmpdir}/p{page_num}"
+                img_path = f"{img_prefix}.pgm"  # pdftoppm -gray outputs .pgm
+
+                # Convert one PDF page to a grayscale image
+                try:
+                    subprocess.run(
+                        [
+                            "pdftoppm",
+                            "-gray", "-r", "100",
+                            "-f", str(page_num), "-l", str(page_num),
+                            "-singlefile",
+                            str(path), img_prefix,
+                        ],
+                        capture_output=True,
+                        timeout=PAGE_TIMEOUT,
+                        check=True,
+                    )
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                    continue
+
+                if not Path(img_path).exists():
+                    # pdftoppm may write .ppm even with -gray on some versions
+                    alt = f"{img_prefix}.ppm"
+                    if Path(alt).exists():
+                        img_path = alt
+                    else:
+                        continue
+
+                # OCR the image
+                try:
+                    ocr = subprocess.run(
+                        ["tesseract", img_path, "stdout", "-l", "eng"],
+                        capture_output=True,
+                        text=True,
+                        timeout=PAGE_TIMEOUT,
+                    )
+                    text = ocr.stdout.strip()
                     if text:
                         pages_text.append(f"## Page {page_num}\n\n{text}")
-                    del images  # free memory before next page
-        except Exception as error:
-            raise ChatReadyError(
-                code="conversion_failed",
-                message=FRIENDLY_CONVERSION_ERROR,
-                status_code=500,
-            ) from error
+                except (subprocess.TimeoutExpired, Exception):
+                    continue
 
         if not pages_text:
             raise ChatReadyError(
@@ -141,12 +161,14 @@ class MarkdownConverter:
         started_at = perf_counter()
 
         try:
-            import pytesseract
-            from PIL import Image
-
-            image = Image.open(path)
-            ocr_text = pytesseract.image_to_string(image).strip()
-        except ImportError:
+            result = subprocess.run(
+                ["tesseract", str(path), "stdout", "-l", "eng"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            ocr_text = result.stdout.strip()
+        except FileNotFoundError:
             raise ChatReadyError(
                 code="unsupported_file",
                 message=(
