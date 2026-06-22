@@ -47,10 +47,9 @@ class MarkdownConverter:
     def convert_file(self, path: Path, file_type: str) -> ConvertedDocument:
         if path.suffix.lower() in IMAGE_EXTENSIONS:
             return self._convert_image(path, file_type)
-        result = self._convert(source=path, file_type=file_type)
-        if file_type == "pdf" and _is_scanned_pdf(result.markdown):
-            return self._convert_scanned_pdf(path)
-        return result
+        if file_type == "pdf":
+            return self._convert_pdf(path)
+        return self._convert(source=path, file_type=file_type)
 
     def convert_url(self, url: str) -> ConvertedDocument:
         if _is_youtube_url(url):
@@ -64,6 +63,31 @@ class MarkdownConverter:
                 status_code=422,
             )
         return self._convert(source=html, file_type="url")
+
+    def _convert_pdf(self, path: Path) -> ConvertedDocument:
+        """Extract text from a PDF using pdftotext subprocess, fall back to OCR if scanned."""
+        try:
+            result = subprocess.run(
+                ["pdftotext", "-layout", str(path), "-"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            extracted = result.stdout.strip()
+        except Exception:
+            extracted = ""
+
+        if not _is_scanned_pdf(extracted):
+            started_at = perf_counter()
+            processing_time_ms = round((perf_counter() - started_at) * 1000)
+            return ConvertedDocument(
+                markdown=extracted,
+                raw_text=extracted,
+                file_type="pdf",
+                processing_time_ms=processing_time_ms,
+            )
+
+        return self._convert_scanned_pdf(path)
 
     def _convert_scanned_pdf(self, path: Path) -> ConvertedDocument:
         started_at = perf_counter()
