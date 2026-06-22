@@ -45,7 +45,10 @@ class MarkdownConverter:
     def convert_file(self, path: Path, file_type: str) -> ConvertedDocument:
         if path.suffix.lower() in IMAGE_EXTENSIONS:
             return self._convert_image(path, file_type)
-        return self._convert(source=path, file_type=file_type)
+        result = self._convert(source=path, file_type=file_type)
+        if file_type == "pdf" and _is_scanned_pdf(result.markdown):
+            return self._convert_scanned_pdf(path)
+        return result
 
     def convert_url(self, url: str) -> ConvertedDocument:
         if _is_youtube_url(url):
@@ -59,6 +62,57 @@ class MarkdownConverter:
                 status_code=422,
             )
         return self._convert(source=html, file_type="url")
+
+    def _convert_scanned_pdf(self, path: Path) -> ConvertedDocument:
+        started_at = perf_counter()
+
+        try:
+            from pdf2image import convert_from_path
+            import pytesseract
+
+            images = convert_from_path(path, dpi=200)
+        except ImportError:
+            raise ChatReadyError(
+                code="unsupported_file",
+                message=(
+                    "This PDF appears to be scanned (no selectable text). "
+                    "Converting scanned PDFs requires additional tools not available on this server."
+                ),
+                status_code=415,
+            )
+        except Exception as error:
+            raise ChatReadyError(
+                code="conversion_failed",
+                message=FRIENDLY_CONVERSION_ERROR,
+                status_code=500,
+            ) from error
+
+        pages_text: list[str] = []
+        for i, image in enumerate(images, 1):
+            text = pytesseract.image_to_string(image).strip()
+            if text:
+                pages_text.append(f"## Page {i}\n\n{text}")
+
+        if not pages_text:
+            raise ChatReadyError(
+                code="conversion_failed",
+                message=(
+                    "No text could be extracted from this scanned PDF. "
+                    "The scan quality may be too low or the pages may contain no readable text."
+                ),
+                status_code=500,
+            )
+
+        ocr_text = "\n\n".join(pages_text)
+        markdown = f"<!-- Extracted via OCR (scanned PDF) -->\n\n{ocr_text}"
+        processing_time_ms = round((perf_counter() - started_at) * 1000)
+
+        return ConvertedDocument(
+            markdown=markdown,
+            raw_text=ocr_text,
+            file_type="pdf",
+            processing_time_ms=processing_time_ms,
+        )
 
     def _convert_image(self, path: Path, file_type: str) -> ConvertedDocument:
         started_at = perf_counter()
@@ -180,6 +234,23 @@ class MarkdownConverter:
             file_type="youtube",
             processing_time_ms=processing_time_ms,
         )
+
+
+def _is_scanned_pdf(markdown: str) -> bool:
+    """Returns True if a PDF's extracted text looks like a scanned document
+    (i.e. only page numbers were found, no real content)."""
+    lines = [line.strip() for line in markdown.split("\n") if line.strip()]
+    non_numeric = [line for line in lines if not line.isdigit()]
+    if not lines:
+        return True
+    # If over 60% of lines are just page numbers, it's scanned
+    if len(non_numeric) / len(lines) < 0.4:
+        return True
+    # Or if total meaningful word count is suspiciously low
+    word_count = len(markdown.split())
+    if word_count < 30:
+        return True
+    return False
 
 
 def _fetch_url_html(url: str) -> str | None:
