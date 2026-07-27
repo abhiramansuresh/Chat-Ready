@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
   },
+  twitter: { card: "summary_large_image" },
 };
 
 interface RootLayoutProps {
