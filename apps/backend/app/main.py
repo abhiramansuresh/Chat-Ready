@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,15 @@ from app.api.routes import router
 from app.core.config import settings
 from app.core.errors import ChatReadyError, FRIENDLY_CONVERSION_ERROR
 from app.core.rate_limit import RateLimitMiddleware
+
+logger = logging.getLogger(__name__)
+
+# Without this the root logger sits at WARNING and every logger.info in the
+# service layer is discarded, so successful conversions leave no trace at all.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 
 def create_app() -> FastAPI:
@@ -79,9 +90,11 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(
-        _request: Request,
+        request: Request,
         _error: Exception,
     ) -> JSONResponse:
+        # Without this, every unexpected crash is an anonymous 500.
+        logger.exception("unhandled error path=%s", request.url.path)
         return JSONResponse(
             status_code=500,
             content={

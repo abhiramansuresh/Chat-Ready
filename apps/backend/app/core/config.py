@@ -9,6 +9,10 @@ DEFAULT_ALLOWED_ORIGINS = ("http://localhost:3000",)
 DEFAULT_MAX_UPLOAD_SIZE_MB = 25
 DEFAULT_RATE_LIMIT_REQUESTS = 60
 DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60
+# Tesseract slows down roughly in proportion to the number of languages it has
+# to consider, so this is a Latin-script set by default. The Docker image also
+# ships Chinese, Japanese, Arabic, Hindi, and Russian for anyone who widens it.
+DEFAULT_OCR_LANGUAGES = "eng+fra+deu+spa+ita+por+nld"
 
 load_dotenv(BACKEND_ROOT / ".env")
 
@@ -52,6 +56,8 @@ class Settings:
     max_upload_size_mb: int
     rate_limit_requests: int
     rate_limit_window_seconds: int
+    ocr_languages: str
+    log_error_detail: bool
 
     @property
     def max_upload_size_bytes(self) -> int:
@@ -71,4 +77,9 @@ settings = Settings(
         "RATE_LIMIT_WINDOW_SECONDS",
         DEFAULT_RATE_LIMIT_WINDOW_SECONDS,
     ),
+    ocr_languages=getenv("OCR_LANGUAGES", "").strip() or DEFAULT_OCR_LANGUAGES,
+    # Off by default so the deployed service keeps the promise in the README
+    # that file contents never reach the logs. Turn it on in staging for QA.
+    log_error_detail=getenv("LOG_ERROR_DETAIL", "").strip().lower()
+    in {"1", "true", "yes"},
 )

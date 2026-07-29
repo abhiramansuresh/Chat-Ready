@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 
 from fastapi import UploadFile
 
@@ -12,6 +13,28 @@ from app.services.token_estimator import TokenEstimator, calculate_reduction_per
 from app.services.url_validation import validate_url
 
 logger = logging.getLogger(__name__)
+
+CAUSE_MESSAGE_MAX_CHARS = 200
+
+
+def _describe_cause(error: ChatReadyError) -> str:
+    """Names the underlying library failure behind a friendly error.
+
+    The exception *type* is always safe to log and is usually enough to
+    classify a failure. The message can occasionally quote part of the document,
+    so it is gated behind LOG_ERROR_DETAIL rather than logged in production.
+    """
+    cause = error.__cause__
+
+    if cause is None:
+        return "none"
+
+    name = f"{type(cause).__module__}.{type(cause).__qualname__}"
+
+    if not settings.log_error_detail:
+        return name
+
+    return f"{name}: {str(cause)[:CAUSE_MESSAGE_MAX_CHARS]}"
 
 
 class ConversionService:
@@ -42,25 +65,60 @@ class ConversionService:
             )
             response = self._build_response(converted_document)
             logger.info(
-                "conversion succeeded file_type=%s duration_ms=%s",
+                "conversion succeeded file_type=%s bytes=%s duration_ms=%s tokens=%s",
                 converted_document.file_type,
+                temporary_upload.size_bytes,
                 converted_document.processing_time_ms,
+                response.markdown_token_count,
             )
             return response
-        except ChatReadyError:
-            logger.info("conversion failed file_type=%s", validation.file_type)
+        except ChatReadyError as error:
+            logger.warning(
+                "conversion failed file_type=%s bytes=%s code=%s cause=%s",
+                validation.file_type,
+                temporary_upload.size_bytes,
+                error.code,
+                _describe_cause(error),
+            )
+            raise
+        except Exception:
+            # A crash reaching here would otherwise surface only as a generic
+            # 500 with nothing to debug from.
+            logger.exception(
+                "conversion crashed file_type=%s bytes=%s",
+                validation.file_type,
+                temporary_upload.size_bytes,
+            )
             raise
         finally:
             delete_temp_file(temporary_upload.path)
 
     def convert_url(self, url: str) -> ConversionResponse:
         validated_url = validate_url(url)
-        converted_document = self._markdown_converter.convert_url(validated_url)
-        response = self._build_response(converted_document)
+
+        try:
+            converted_document = self._markdown_converter.convert_url(validated_url)
+            response = self._build_response(converted_document)
+        except ChatReadyError as error:
+            logger.warning(
+                "url conversion failed host=%s code=%s cause=%s",
+                urlparse(validated_url).hostname,
+                error.code,
+                _describe_cause(error),
+            )
+            raise
+        except Exception:
+            logger.exception(
+                "url conversion crashed host=%s",
+                urlparse(validated_url).hostname,
+            )
+            raise
+
         logger.info(
-            "conversion succeeded file_type=%s duration_ms=%s",
+            "conversion succeeded file_type=%s duration_ms=%s tokens=%s",
             converted_document.file_type,
             converted_document.processing_time_ms,
+            response.markdown_token_count,
         )
         return response
 

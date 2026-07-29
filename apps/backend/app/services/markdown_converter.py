@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from functools import lru_cache
 import io
+import logging
 from pathlib import Path
 import re
 import subprocess
@@ -21,6 +23,7 @@ with catch_warnings():
     )
     from markitdown import MarkItDown
 
+from app.core.config import settings
 from app.core.errors import (
     ChatReadyError,
     FRIENDLY_CONVERSION_ERROR,
@@ -29,6 +32,8 @@ from app.core.errors import (
 )
 from app.services.text_cleanup import clean_page_text, normalize
 from app.services.url_validation import require_public_url
+
+logger = logging.getLogger(__name__)
 
 URL_FETCH_TIMEOUT_SECONDS = 15
 URL_MAX_REDIRECTS = 5
@@ -59,6 +64,12 @@ OCR_TIME_BUDGET_SECONDS = 75
 # text. ponytail: raise toward 300 if the host has memory to spare — cost is
 # roughly quadratic in DPI, and this pipeline runs one page at a time.
 OCR_RENDER_DPI = 150
+
+# Thresholds for spotting a text layer that extracts cleanly but is nonsense.
+DAMAGED_TEXT_MIN_TOKENS = 30
+DAMAGED_SINGLE_LETTER_RATIO = 0.4
+DAMAGED_REPLACEMENT_CHAR_RATIO = 0.02
+DAMAGED_MIN_ALPHANUMERIC_RATIO = 0.5
 
 
 @dataclass(frozen=True)
@@ -113,7 +124,7 @@ class MarkdownConverter:
         started_at = perf_counter()
         extracted = _extract_pdf_text(path)
 
-        if _is_scanned_pdf(extracted):
+        if _needs_ocr(extracted):
             return self._convert_scanned_pdf(path, started_at)
 
         markdown = clean_page_text(extracted.split("\f"))
@@ -173,7 +184,7 @@ class MarkdownConverter:
 
         try:
             result = subprocess.run(
-                ["tesseract", str(path), "stdout", "-l", "eng"],
+                ["tesseract", str(path), "stdout", "-l", ocr_languages()],
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -398,7 +409,7 @@ def _render_pdf_page(path: Path, page_number: int, tmpdir: str) -> str | None:
 def _ocr_image(image_path: str) -> str:
     try:
         result = subprocess.run(
-            ["tesseract", image_path, "stdout", "-l", "eng"],
+            ["tesseract", image_path, "stdout", "-l", ocr_languages()],
             capture_output=True,
             text=True,
             timeout=OCR_PAGE_TIMEOUT_SECONDS,
@@ -409,6 +420,52 @@ def _ocr_image(image_path: str) -> str:
     return result.stdout.strip()
 
 
+@lru_cache(maxsize=1)
+def ocr_languages() -> str:
+    """The configured OCR languages, narrowed to the packs actually installed.
+
+    Tesseract exits with an error if it is handed a language it does not have,
+    which would fail the whole conversion. Dropping the missing ones degrades to
+    a worse result instead of no result.
+    """
+    requested = [
+        language
+        for language in settings.ocr_languages.split("+")
+        if language.strip()
+    ]
+    installed = _installed_ocr_languages()
+
+    if not installed:
+        # Could not ask tesseract; trust the configuration and let it try.
+        return "+".join(requested) or "eng"
+
+    available = [language for language in requested if language in installed]
+
+    if len(available) < len(requested):
+        logger.warning(
+            "ocr languages unavailable: %s",
+            sorted(set(requested) - installed),
+        )
+
+    return "+".join(available) or "eng"
+
+
+def _installed_ocr_languages() -> frozenset[str]:
+    try:
+        result = subprocess.run(
+            ["tesseract", "--list-langs"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return frozenset()
+
+    # First line is a header such as "List of available languages (5):".
+    lines = result.stdout.splitlines()
+    return frozenset(line.strip() for line in lines[1:] if line.strip())
+
+
 def _truncation_note(pages_read: int, page_count: int) -> str:
     if not page_count or pages_read >= page_count:
         return ""
@@ -417,6 +474,15 @@ def _truncation_note(pages_read: int, page_count: int) -> str:
         f"\n\n---\n_Note: only the first {pages_read} of {page_count} pages "
         "were processed._"
     )
+
+
+def _needs_ocr(text: str) -> bool:
+    """True when the PDF's own text layer cannot be trusted.
+
+    Rendering the page and running OCR bypasses the text layer entirely, so a
+    damaged one is worth falling back on — not just an empty one.
+    """
+    return _is_scanned_pdf(text) or _is_damaged_text(text)
 
 
 def _is_scanned_pdf(markdown: str) -> bool:
@@ -434,6 +500,38 @@ def _is_scanned_pdf(markdown: str) -> bool:
     if word_count < 30:
         return True
     return False
+
+
+def _is_damaged_text(text: str) -> bool:
+    """Detects text layers that extract without error but produce nonsense.
+
+    A broken embedded font or encoding map yields output that passes an
+    emptiness check and then reaches the model as garbage: letter-spaced runs
+    ("T h i s  i s"), replacement characters, or symbol soup.
+    """
+    tokens = text.split()
+
+    if len(tokens) < DAMAGED_TEXT_MIN_TOKENS:
+        # Too little to judge; the scanned-PDF check already covers this case.
+        return False
+
+    single_letters = sum(1 for token in tokens if len(token) == 1 and token.isalpha())
+
+    if single_letters / len(tokens) > DAMAGED_SINGLE_LETTER_RATIO:
+        return True
+
+    if text.count("�") > len(text) * DAMAGED_REPLACEMENT_CHAR_RATIO:
+        return True
+
+    visible = [char for char in text if not char.isspace()]
+
+    if not visible:
+        return True
+
+    # Digits count as content, so a numeric table is not mistaken for damage.
+    alphanumeric = sum(1 for char in visible if char.isalnum())
+
+    return alphanumeric / len(visible) < DAMAGED_MIN_ALPHANUMERIC_RATIO
 
 
 def _fetch_url_html(url: str) -> str | None:

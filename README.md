@@ -139,6 +139,8 @@ The frontend runs at `http://localhost:3000`.
 | `MAX_UPLOAD_SIZE_MB` | `25` | Maximum accepted file size |
 | `RATE_LIMIT_REQUESTS` | `60` | Max requests per window per IP |
 | `RATE_LIMIT_WINDOW_SECONDS` | `60` | Rate limit window duration |
+| `OCR_LANGUAGES` | `eng+fra+deu+spa+ita+por+nld` | Tesseract languages, joined with `+`. Missing packs are dropped with a warning instead of failing the conversion. The Docker image also ships `chi_sim`, `jpn`, `ara`, `hin`, `rus` |
+| `LOG_ERROR_DETAIL` | `false` | Log the underlying library error message on failure, not just the exception type. Useful for QA; leave off in production |
 
 ---
 
@@ -215,6 +217,9 @@ Savings come from two places:
 
 1. **Markup removal** — HTML and RTF carry tags, styles, and control codes that mean nothing to a model. This is usually the biggest win.
 2. **Page-furniture cleanup** — for PDFs, running headers, footers, page numbers, and the column padding left by layout-preserving extraction are stripped. This shrinks the output *and* removes text that interrupts a model mid-sentence at every page break.
+3. **Table reconstruction** — space-aligned PDF tables are rebuilt as Markdown pipe tables, so a model reads the column a value belongs to instead of inferring it from character positions. Blocks that turn out to be side-by-side prose (two-column layouts) are deliberately left alone rather than given a false row structure.
+
+Scanned pages and PDFs whose embedded text layer is damaged — letter-spaced output, replacement characters, symbol soup — fall back to OCR automatically, since rendering the page bypasses the broken text layer entirely.
 
 Token counts use OpenAI's `cl100k_base` tokenizer (compatible with GPT-4 and Claude). Actual savings vary by model.
 
