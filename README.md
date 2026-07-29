@@ -40,9 +40,14 @@ File size limit: **25 MB** (configurable).
 |---|---|
 | Frontend | [Next.js 16](https://nextjs.org/) · TypeScript · Tailwind CSS |
 | Backend | [FastAPI](https://fastapi.tiangolo.com/) · Python 3.13 |
-| Conversion | [Microsoft MarkItDown](https://github.com/microsoft/markitdown) |
+| Office & web formats | [Microsoft MarkItDown](https://github.com/microsoft/markitdown) |
+| PDF text | Poppler (`pdftotext`) |
+| OCR (images, scanned PDFs) | Tesseract, via Poppler page rendering |
+| RTF | [striprtf](https://github.com/joshy/striprtf) |
 | Token counting | [tiktoken](https://github.com/openai/tiktoken) (cl100k_base) |
 | YouTube | [youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api) |
+
+MarkItDown handles the formats it is genuinely best at — DOCX, PPTX, XLSX, HTML. PDFs and images route around it to Poppler and Tesseract, which are faster and hold far less memory than the `pdfminer`/`pdfplumber` path on a small instance.
 
 ---
 
@@ -77,7 +82,8 @@ chatready/
 - Node.js 20+
 - Python 3.13
 - `pip` and `venv`
-- Tesseract OCR (for image conversion): `brew install tesseract` on macOS, `apt-get install tesseract-ocr` on Linux
+- Tesseract OCR (images and scanned PDFs): `brew install tesseract` on macOS, `apt-get install tesseract-ocr` on Linux
+- Poppler (PDF text extraction — provides `pdftotext`, `pdfinfo`, `pdftoppm`): `brew install poppler` on macOS, `apt-get install poppler-utils` on Linux
 
 ### 1. Clone the repo
 
@@ -141,11 +147,8 @@ The frontend runs at `http://localhost:3000`.
 ### Backend — Render
 
 1. Create a new **Web Service** on [Render](https://render.com), pointing to `apps/backend` as the root directory.
-2. Set the build and start commands:
-   - **Build command:** `apt-get install -y tesseract-ocr && pip install -r requirements.txt`
-   - **Start command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-3. Add your environment variables in the Render dashboard (see table above).
-4. The repo includes `apps/backend/.python-version` (`3.13.3`) so Render picks up the correct Python version automatically.
+2. Choose **Docker** as the runtime. `apps/backend/Dockerfile` installs `tesseract-ocr` and `poppler-utils`, which the PDF and image pipelines shell out to — a plain Python runtime will not have them.
+3. Add your environment variables in the Render dashboard (see table above). Set `ALLOWED_ORIGINS` to your deployed frontend URL.
 
 > **Note:** The free Render tier spins down after inactivity. The first request after a period of no traffic takes ~30 seconds to wake the server. Subsequent requests are fast. The frontend detects this and shows a friendly message to users.
 
@@ -170,11 +173,11 @@ Converts an uploaded file to Markdown.
 {
   "success": true,
   "markdown": "# Document title\n\n...",
-  "original_tokens": 1200,
-  "converted_tokens": 980,
-  "reduction_percentage": 18,
-  "file_type": "pdf",
-  "processing_time_ms": 340
+  "rawTokenCount": 1200,
+  "markdownTokenCount": 980,
+  "reductionPercent": 18,
+  "fileType": "pdf",
+  "processingTimeMs": 340
 }
 ```
 
@@ -197,9 +200,21 @@ Returns `{ "status": "ok" }`. Used to check if the server is alive.
 
 ## How the token savings work
 
-The `original_tokens` count is the number of tokens in the **raw text extracted** from your file — not the binary file size. For a plain text file, this will be similar to the `converted_tokens` count, and that is correct. The value of conversion for plain text is the format, not the size.
+`rawTokenCount` is the honest "before" for the format:
 
-For HTML pages, DOCX, and PPTX files, the savings can be significant because markup tags and XML structure add a lot of tokens that carry no meaning for an AI.
+| Source | Baseline used |
+|---|---|
+| HTML, XML, RTF, web pages | The raw source text — what you'd otherwise paste in |
+| PDF, images | The extracted text before cleanup |
+| DOCX, PPTX, XLSX | Extracted text (a zip archive has no meaningful token count — the UI shows a file-size comparison instead) |
+| TXT, MD, CSV, JSON | Same as the output, and reported as ~0% |
+
+A plain text file legitimately shows no reduction. The value there is the format, not the size.
+
+Savings come from two places:
+
+1. **Markup removal** — HTML and RTF carry tags, styles, and control codes that mean nothing to a model. This is usually the biggest win.
+2. **Page-furniture cleanup** — for PDFs, running headers, footers, page numbers, and the column padding left by layout-preserving extraction are stripped. This shrinks the output *and* removes text that interrupts a model mid-sentence at every page break.
 
 Token counts use OpenAI's `cl100k_base` tokenizer (compatible with GPT-4 and Claude). Actual savings vary by model.
 
@@ -221,7 +236,8 @@ Contributions are welcome. Please open an issue before submitting a large pull r
 1. Fork the repo
 2. Create a branch: `git checkout -b my-feature`
 3. Make your changes
-4. Open a pull request
+4. Run the backend self-checks: `cd apps/backend && python test_conversion.py`
+5. Open a pull request
 
 See [`ChatReady_CODING_RULES.md`](ChatReady_CODING_RULES.md) for code style and conventions used in this project.
 

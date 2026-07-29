@@ -1,8 +1,12 @@
 fastapi==0.136.3
-markitdown[all]==0.1.6
+# Extras listed explicitly rather than [all]: PDFs go through pdftotext, images
+# through tesseract, and YouTube through youtube-transcript-api, so the
+# pdf/audio/azure/outlook extras were installed and never used.
+markitdown[docx,pptx,xlsx]==0.1.6
 python-dotenv==1.2.2
 python-multipart==0.0.29
 requests==2.34.2
+striprtf==0.0.29
 tiktoken==0.13.0
 uvicorn[standard]==0.48.0
 youtube-transcript-api==1.0.3

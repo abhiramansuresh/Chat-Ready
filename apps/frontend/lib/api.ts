@@ -1,9 +1,9 @@
-import { apiBaseUrl } from "@/lib/env";
+import { apiBaseUrl, maxUploadSizeMb } from "@/lib/env";
 import type { ApiErrorResponse, ConversionResponse } from "@/types/conversion";
 
 const ERROR_MESSAGES: Record<string, string> = {
   conversion_failed: "Something went wrong while preparing your document.",
-  file_too_large: "Please upload files smaller than 25MB.",
+  file_too_large: `Please upload files smaller than ${maxUploadSizeMb}MB.`,
   invalid_request: "Please check the file or URL and try again.",
   rate_limit_exceeded: "You're converting too quickly. Please wait a moment.",
   unsupported_file: "That format is not supported yet.",
