@@ -139,7 +139,8 @@ The frontend runs at `http://localhost:3000`.
 | `MAX_UPLOAD_SIZE_MB` | `25` | Maximum accepted file size |
 | `RATE_LIMIT_REQUESTS` | `60` | Max requests per window per IP |
 | `RATE_LIMIT_WINDOW_SECONDS` | `60` | Rate limit window duration |
-| `OCR_LANGUAGES` | `eng+fra+deu+spa+ita+por+nld` | Tesseract languages, joined with `+`. Missing packs are dropped with a warning instead of failing the conversion. The Docker image also ships `chi_sim`, `jpn`, `ara`, `hin`, `rus` |
+| `OCR_LANGUAGES` | `eng` | Tesseract languages, joined with `+`. Each one added slows OCR roughly proportionally. Missing packs are dropped with a warning instead of failing the conversion. The Docker image ships `fra`, `deu`, `spa`, `ita`, `por`, `nld`, `chi_sim`, `jpn`, `ara`, `hin`, `rus` — enabling them is a config change, not a rebuild |
+| `OCR_DPI` | `150` | Resolution for rendering PDF pages before OCR. Cost is roughly quadratic — lower it if scanned pages time out on a small instance |
 | `LOG_ERROR_DETAIL` | `false` | Log the underlying library error message on failure, not just the exception type. Useful for QA; leave off in production |
 
 ---

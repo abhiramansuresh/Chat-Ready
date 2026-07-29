@@ -10,9 +10,14 @@ DEFAULT_MAX_UPLOAD_SIZE_MB = 25
 DEFAULT_RATE_LIMIT_REQUESTS = 60
 DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60
 # Tesseract slows down roughly in proportion to the number of languages it has
-# to consider, so this is a Latin-script set by default. The Docker image also
-# ships Chinese, Japanese, Arabic, Hindi, and Russian for anyone who widens it.
-DEFAULT_OCR_LANGUAGES = "eng+fra+deu+spa+ita+por+nld"
+# to consider, and the free tier this runs on has 0.1 CPU, so the default is
+# English alone. The Docker image ships fra/deu/spa/ita/por/nld/chi_sim/jpn/
+# ara/hin/rus, so widening this is a dashboard change, not a rebuild.
+DEFAULT_OCR_LANGUAGES = "eng"
+# 150 keeps Tesseract above the resolution where its accuracy falls off. Drop
+# toward 100 if pages are timing out on a CPU-starved host; raise toward 300 if
+# there is headroom.
+DEFAULT_OCR_DPI = 150
 
 load_dotenv(BACKEND_ROOT / ".env")
 
@@ -57,6 +62,7 @@ class Settings:
     rate_limit_requests: int
     rate_limit_window_seconds: int
     ocr_languages: str
+    ocr_dpi: int
     log_error_detail: bool
 
     @property
@@ -78,6 +84,7 @@ settings = Settings(
         DEFAULT_RATE_LIMIT_WINDOW_SECONDS,
     ),
     ocr_languages=getenv("OCR_LANGUAGES", "").strip() or DEFAULT_OCR_LANGUAGES,
+    ocr_dpi=_read_positive_int("OCR_DPI", DEFAULT_OCR_DPI),
     # Off by default so the deployed service keeps the promise in the README
     # that file contents never reach the logs. Turn it on in staging for QA.
     log_error_detail=getenv("LOG_ERROR_DETAIL", "").strip().lower()

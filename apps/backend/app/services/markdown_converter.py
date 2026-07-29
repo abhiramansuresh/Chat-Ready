@@ -60,10 +60,9 @@ OCR_PAGE_TIMEOUT_SECONDS = 30
 # Kept comfortably under the frontend's 120s abort so a slow scan returns the
 # pages it managed to read instead of dying as a timeout with nothing to show.
 OCR_TIME_BUDGET_SECONDS = 75
-# 100 DPI measurably hurts Tesseract accuracy; 150 is the usual floor for clean
-# text. ponytail: raise toward 300 if the host has memory to spare — cost is
-# roughly quadratic in DPI, and this pipeline runs one page at a time.
-OCR_RENDER_DPI = 150
+# Cost is roughly quadratic in DPI, so this is the first knob to turn when
+# pages time out on a CPU-starved host. See config.DEFAULT_OCR_DPI.
+OCR_RENDER_DPI = settings.ocr_dpi
 
 # Thresholds for spotting a text layer that extracts cleanly but is nonsense.
 DAMAGED_TEXT_MIN_TOKENS = 30
