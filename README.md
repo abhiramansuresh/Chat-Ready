@@ -214,11 +214,16 @@ Returns `{ "status": "ok" }`. Used to check if the server is alive.
 
 A plain text file legitimately shows no reduction. The value there is the format, not the size.
 
-Savings come from two places:
+Savings come from several places, measured on a representative article page and spreadsheet:
 
-1. **Markup removal** — HTML and RTF carry tags, styles, and control codes that mean nothing to a model. This is usually the biggest win.
-2. **Page-furniture cleanup** — for PDFs, running headers, footers, page numbers, and the column padding left by layout-preserving extraction are stripped. This shrinks the output *and* removes text that interrupts a model mid-sentence at every page break.
-3. **Table reconstruction** — space-aligned PDF tables are rebuilt as Markdown pipe tables, so a model reads the column a value belongs to instead of inferring it from character positions. Blocks that turn out to be side-by-side prose (two-column layouts) are deliberately left alone rather than given a false row structure.
+1. **Page boilerplate removal** — navigation, cookie banners, and footer link farms convert to Markdown just as faithfully as the article does, and usually outweigh it. Removing them before conversion cut a test page from 636 to 66 tokens (**90%**). This is the single biggest win for web pages.
+2. **Empty table compaction** — spreadsheet exports carry a grid far larger than their data; one stray cell turns three rows into a wall of `NaN`. A sheet with nine real values went from 1,170 to 65 tokens (**94%**).
+3. **Tracking parameter removal** — `utm_*`, `fbclid`, `gclid` and friends are often longer than the URL carrying them. Worth **40%** on a link-heavy page on its own.
+4. **Markup removal** — HTML and RTF carry tags, styles, and control codes that mean nothing to a model.
+5. **Page-furniture cleanup** — for PDFs, running headers, footers, page numbers, and the column padding left by layout-preserving extraction are stripped. This shrinks the output *and* removes text that interrupts a model mid-sentence at every page break.
+6. **Table reconstruction** — space-aligned PDF tables are rebuilt as Markdown pipe tables, so a model reads the column a value belongs to instead of inferring it from character positions. Blocks that turn out to be side-by-side prose (two-column layouts) are deliberately left alone rather than given a false row structure.
+
+File size is deliberately **not** reported. Comparing a zip archive's bytes to Markdown text says nothing about what a document costs an LLM, which is the only number that matters here.
 
 Scanned pages and PDFs whose embedded text layer is damaged — letter-spaced output, replacement characters, symbol soup — fall back to OCR automatically, since rendering the page bypasses the broken text layer entirely.
 

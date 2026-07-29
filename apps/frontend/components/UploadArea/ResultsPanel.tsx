@@ -34,14 +34,12 @@ const AI_DESTINATIONS = [
 interface ResultsPanelProps {
   readonly result: ConversionResponse;
   readonly sourceLabel: string;
-  readonly originalFileSizeBytes?: number;
   readonly onReset: () => void;
 }
 
 export function ResultsPanel({
   result,
   sourceLabel,
-  originalFileSizeBytes,
   onReset,
 }: ResultsPanelProps): ReactElement {
   const [copyLabel, setCopyLabel] = useState<"copy" | "copied" | "failed">("copy");
@@ -50,16 +48,12 @@ export function ResultsPanel({
 
   const isHighTokenCount = result.markdownTokenCount > HIGH_TOKEN_THRESHOLD;
 
-  const tokenReductionPercent = result.reductionPercent;
-  const hasTokenReduction = tokenReductionPercent > REDUCTION_THRESHOLD_PERCENT;
-
-  const markdownSizeBytes = new TextEncoder().encode(result.markdown).byteLength;
-  const fileSizeReductionPercent =
-    originalFileSizeBytes && originalFileSizeBytes > 0
-      ? ((originalFileSizeBytes - markdownSizeBytes) / originalFileSizeBytes) * 100
-      : 0;
-  const hasFileSizeReduction =
-    !hasTokenReduction && fileSizeReductionPercent > REDUCTION_THRESHOLD_PERCENT;
+  // File size was deliberately dropped as a stat: comparing a zip archive's
+  // bytes to Markdown text says nothing about what the document costs an LLM,
+  // which is the only number that matters here.
+  const tokensSaved = result.rawTokenCount - result.markdownTokenCount;
+  const hasTokenReduction =
+    result.reductionPercent > REDUCTION_THRESHOLD_PERCENT && tokensSaved > 0;
 
   async function handleCopy(): Promise<void> {
     try {
@@ -124,21 +118,11 @@ export function ResultsPanel({
           </div>
         </div>
 
-        {hasTokenReduction ? (
-          <StatRow
-            label="Token reduction"
-            before={`~${formatNumber(result.rawTokenCount)} tokens`}
-            after={`~${formatNumber(result.markdownTokenCount)} tokens`}
-            badge={`~${Math.round(tokenReductionPercent)}% less`}
-          />
-        ) : hasFileSizeReduction ? (
-          <StatRow
-            label="File size reduction"
-            before={formatBytes(originalFileSizeBytes!)}
-            after={formatBytes(markdownSizeBytes)}
-            badge={`~${Math.round(fileSizeReductionPercent)}% smaller`}
-          />
-        ) : null}
+        <TokenSummary
+          tokens={result.markdownTokenCount}
+          tokensSaved={hasTokenReduction ? tokensSaved : null}
+          reductionPercent={result.reductionPercent}
+        />
       </div>
 
       {/* High token warning */}
@@ -224,33 +208,36 @@ export function ResultsPanel({
   );
 }
 
-interface StatRowProps {
-  readonly label: string;
-  readonly before: string;
-  readonly after: string;
-  readonly badge: string;
+interface TokenSummaryProps {
+  readonly tokens: number;
+  readonly tokensSaved: number | null;
+  readonly reductionPercent: number;
 }
 
-function StatRow({ label, before, after, badge }: StatRowProps): ReactElement {
+function TokenSummary({
+  tokens,
+  tokensSaved,
+  reductionPercent,
+}: TokenSummaryProps): ReactElement {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
       <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-        {label}
+        Tokens to paste
       </span>
-      <span className="text-sm text-slate-500 dark:text-slate-400">{before}</span>
-      <span className="text-slate-300 dark:text-slate-600">&rarr;</span>
-      <span className="text-sm font-semibold text-slate-950 dark:text-white">{after}</span>
-      <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
-        {badge}
+      <span className="text-lg font-bold text-slate-950 dark:text-white">
+        ~{formatNumber(tokens)}
       </span>
+      {tokensSaved ? (
+        <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+          {formatNumber(tokensSaved)} saved &middot; ~{Math.round(reductionPercent)}% less
+        </span>
+      ) : (
+        <span className="text-xs text-slate-400 dark:text-slate-500">
+          already compact &mdash; converting gains you format, not size
+        </span>
+      )}
     </div>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function CheckIcon(): ReactElement {

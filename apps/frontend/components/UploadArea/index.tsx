@@ -219,7 +219,6 @@ export function UploadArea(): ReactElement {
           <ResultsPanel
             result={result}
             sourceLabel={sourceLabel}
-            originalFileSizeBytes={selectedFile?.size}
             onReset={handleReset}
           />
         ) : null}

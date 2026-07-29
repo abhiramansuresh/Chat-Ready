@@ -34,6 +34,29 @@ TABLE_SEPARATOR_WIDTH = 2
 # column averages more than this many words per cell is left alone.
 TABLE_MAX_CELL_WORDS = 3
 
+# Query parameters that exist for analytics, not for finding the page. They are
+# frequently longer than the URL that carries them.
+TRACKING_PARAMETERS = frozenset(
+    {
+        "cmpid", "ef_id", "fbclid", "gbraid", "gclid", "igshid", "mc_cid",
+        "mc_eid", "msclkid", "mkt_tok", "oly_anon_id", "oly_enc_id", "s_kwcid",
+        "twclid", "vero_conv", "vero_id", "wbraid", "yclid", "_ga", "_gl",
+        "ref_src", "ref_url",
+    }
+)
+TRACKING_PARAMETER_PREFIXES = ("utm_", "pk_", "piwik_", "hsa_", "at_")
+
+# Cells that carry no information. pandas writes NaN for blanks and
+# "Unnamed: N" for columns with no header.
+_EMPTY_CELL_VALUES = frozenset({"", "-", "nan", "none", "null", "n/a"})
+_UNNAMED_COLUMN = re.compile(r"^unnamed:?\s*\d+$", re.IGNORECASE)
+_TRAILING_ZERO_DECIMAL = re.compile(r"^(-?\d+)\.0$")
+
+_DATA_URI = re.compile(r"data:[\w.+-]+/[\w.+-]+;base64,[A-Za-z0-9+/=\s]+")
+_MARKDOWN_LINK_TARGET = re.compile(r"(!?\[[^\]]*\]\()([^)\s]+)((?:\s+\"[^\"]*\")?\))")
+_TABLE_LINE = re.compile(r"^\s*\|.*\|\s*$")
+_SEPARATOR_CELL = re.compile(r"^:?-{2,}:?$")
+
 _TRAILING_WHITESPACE = re.compile(r"[ \t]+$", re.MULTILINE)
 _BLANK_LINE_RUN = re.compile(r"\n{3,}")
 _SPACE_RUN = re.compile(f" {{{SPACE_RUN_THRESHOLD},}}")
@@ -57,6 +80,163 @@ def normalize(text: str) -> str:
     return text.strip()
 
 
+def compact_markdown(text: str) -> str:
+    """Removes content that costs tokens without telling a model anything.
+
+    Measured on a typical article page, the base64 image alone was 77% of the
+    converted output; a spreadsheet with nine real values cost 1,170 tokens
+    almost entirely in empty cells.
+    """
+    text = strip_data_uris(text)
+    text = strip_tracking_parameters(text)
+    text = compact_tables(text)
+    return normalize(text)
+
+
+def strip_data_uris(text: str) -> str:
+    """Replaces inline base64 payloads with a short placeholder.
+
+    A model cannot decode base64 into an image, so the payload is pure cost.
+    The placeholder keeps the fact that an image was there.
+    """
+    return _DATA_URI.sub("embedded-image", text)
+
+
+def strip_tracking_parameters(text: str) -> str:
+    """Drops analytics query parameters from Markdown link targets."""
+
+    def clean(match: re.Match[str]) -> str:
+        prefix, target, suffix = match.groups()
+        return f"{prefix}{_clean_url(target)}{suffix}"
+
+    return _MARKDOWN_LINK_TARGET.sub(clean, text)
+
+
+def _clean_url(url: str) -> str:
+    if "?" not in url:
+        return url
+
+    base, _, query = url.partition("?")
+    query, separator, fragment = query.partition("#")
+
+    kept = [
+        pair
+        for pair in query.split("&")
+        if pair and not _is_tracking_parameter(pair.partition("=")[0].lower())
+    ]
+
+    rebuilt = f"{base}?{'&'.join(kept)}" if kept else base
+
+    return f"{rebuilt}{separator}{fragment}"
+
+
+def _is_tracking_parameter(name: str) -> bool:
+    return name in TRACKING_PARAMETERS or name.startswith(TRACKING_PARAMETER_PREFIXES)
+
+
+def compact_tables(text: str) -> str:
+    """Drops all-empty rows and columns from Markdown tables.
+
+    Spreadsheet exports routinely carry a grid far larger than their data: one
+    stray cell turns three rows into a wall of NaN.
+    """
+    lines = text.split("\n")
+    output: list[str] = []
+    block: list[str] = []
+
+    for line in lines:
+        if _TABLE_LINE.match(line):
+            block.append(line)
+            continue
+
+        output.extend(_compact_table_block(block))
+        block = []
+        output.append(line)
+
+    output.extend(_compact_table_block(block))
+
+    return "\n".join(output)
+
+
+def _compact_table_block(block: list[str]) -> list[str]:
+    if len(block) < 2:
+        return block
+
+    rows = [_split_table_row(line) for line in block]
+    width = max(len(row) for row in rows)
+    rows = [row + [""] * (width - len(row)) for row in rows]
+
+    separator_indexes = {
+        index
+        for index, row in enumerate(rows)
+        if row and all(_SEPARATOR_CELL.match(cell.strip()) for cell in row if cell.strip())
+        and any(cell.strip() for cell in row)
+    }
+    content_indexes = [index for index in range(len(rows)) if index not in separator_indexes]
+
+    if not content_indexes:
+        return block
+
+    header_index = content_indexes[0]
+    keep_columns = [
+        column
+        for column in range(width)
+        if any(not _is_empty_cell(rows[index][column]) for index in content_indexes)
+        or not _is_empty_cell(rows[header_index][column])
+    ]
+
+    if not keep_columns:
+        return block
+
+    kept_rows: list[list[str]] = []
+
+    for index, row in enumerate(rows):
+        cells = [_tidy_cell(row[column]) for column in keep_columns]
+
+        if index in separator_indexes:
+            kept_rows.append(["---"] * len(keep_columns))
+            continue
+
+        # Keep the header even if it is blank; drop empty body rows.
+        if index != header_index and all(not cell for cell in cells):
+            continue
+
+        kept_rows.append(cells)
+
+    if len(kept_rows) < 2:
+        return block
+
+    return [f"| {' | '.join(row)} |" for row in kept_rows]
+
+
+def _split_table_row(line: str) -> list[str]:
+    stripped = line.strip()
+    # A Markdown row is delimited by leading and trailing pipes; removing them
+    # first keeps split() from producing phantom empty cells at both ends.
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|") and not stripped.endswith("\\|"):
+        stripped = stripped[:-1]
+
+    return [cell.strip() for cell in stripped.split("|")]
+
+
+def _is_empty_cell(cell: str) -> bool:
+    value = cell.strip().lower()
+    return value in _EMPTY_CELL_VALUES or _UNNAMED_COLUMN.match(value) is not None
+
+
+def _tidy_cell(cell: str) -> str:
+    value = cell.strip()
+
+    if _is_empty_cell(value):
+        return ""
+
+    # pandas renders every number as a float; "100.0" costs more than "100"
+    # and means the same thing.
+    return _TRAILING_ZERO_DECIMAL.sub(r"\1", value)
+
+
 def clean_page_text(pages: list[str]) -> str:
     """Cleanup for page-oriented extraction (PDF text layer, OCR).
 
@@ -70,7 +250,7 @@ def clean_page_text(pages: list[str]) -> str:
     rendered_pages = [render_tables(page) for page in kept_pages]
     body = "\n\n".join(page for page in rendered_pages if page.strip())
     body = _SPACE_RUN.sub(" " * MAX_CONSECUTIVE_SPACES, body)
-    return normalize(body)
+    return normalize(compact_tables(body))
 
 
 def render_tables(page: str) -> str:

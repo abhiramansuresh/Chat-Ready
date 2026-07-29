@@ -30,7 +30,8 @@ from app.core.errors import (
     FRIENDLY_URL_ERROR,
     FRIENDLY_YOUTUBE_TRANSCRIPT_ERROR,
 )
-from app.services.text_cleanup import clean_page_text, normalize
+from app.services.html_cleanup import strip_boilerplate
+from app.services.text_cleanup import clean_page_text, compact_markdown, normalize
 from app.services.url_validation import require_public_url
 
 logger = logging.getLogger(__name__)
@@ -265,7 +266,11 @@ class MarkdownConverter:
             if isinstance(source, str):
                 # source is raw HTML content — pass as a stream so MarkItDown
                 # parses it directly without making any network requests
-                stream = io.BytesIO(source.encode("utf-8"))
+                stream = io.BytesIO(strip_boilerplate(source).encode("utf-8"))
+                result = self._converter.convert(stream, file_extension=".html")
+            elif file_type == "html":
+                html = path_source_text(source)
+                stream = io.BytesIO(strip_boilerplate(html).encode("utf-8"))
                 result = self._converter.convert(stream, file_extension=".html")
             else:
                 result = self._converter.convert(source)
@@ -276,7 +281,7 @@ class MarkdownConverter:
                 status_code=500,
             ) from error
 
-        markdown = normalize(result.markdown or result.text_content or "")
+        markdown = compact_markdown(result.markdown or result.text_content or "")
         raw_text = raw_text_override or result.text_content or markdown
 
         if not markdown:
@@ -328,6 +333,10 @@ class MarkdownConverter:
 
 def _elapsed_ms(started_at: float) -> int:
     return round((perf_counter() - started_at) * 1000)
+
+
+def path_source_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace")
 
 
 def _extract_pdf_text(path: Path) -> str:

@@ -11,7 +11,15 @@ from app.services.markdown_converter import (
     _is_youtube_url,
     _needs_ocr,
 )
-from app.services.text_cleanup import clean_page_text, normalize, render_tables
+from app.services.html_cleanup import strip_boilerplate
+from app.services.text_cleanup import (
+    clean_page_text,
+    compact_tables,
+    normalize,
+    render_tables,
+    strip_data_uris,
+    strip_tracking_parameters,
+)
 from app.services.url_validation import validate_url
 
 
@@ -148,6 +156,99 @@ def test_render_tables_escapes_pipes() -> None:
     rendered = render_tables(page)
 
     assert r"A \| B" in rendered
+
+
+def test_strip_tracking_parameters() -> None:
+    # Analytics junk goes, real query parameters stay.
+    link = "[buy](https://shop.example.com/p?id=42&utm_source=mail&utm_campaign=q3&fbclid=abc)"
+    assert strip_tracking_parameters(link) == "[buy](https://shop.example.com/p?id=42)"
+
+    # A URL that is only tracking loses its query string entirely.
+    assert (
+        strip_tracking_parameters("[x](https://e.com/a?utm_source=n)")
+        == "[x](https://e.com/a)"
+    )
+
+    # Fragments survive, and untracked URLs are untouched.
+    assert (
+        strip_tracking_parameters("[x](https://e.com/a?utm_medium=x#section)")
+        == "[x](https://e.com/a#section)"
+    )
+    assert strip_tracking_parameters("[x](https://e.com/a)") == "[x](https://e.com/a)"
+
+    # Prose containing the letters "utm_" is not a link and must not change.
+    assert strip_tracking_parameters("the utm_source field") == "the utm_source field"
+
+
+def test_strip_data_uris() -> None:
+    assert strip_data_uris("![c](data:image/png;base64,iVBORw0KGgo=)") == "![c](embedded-image)"
+    # Ordinary links are left alone.
+    assert strip_data_uris("[a](https://e.com/x.png)") == "[a](https://e.com/x.png)"
+
+
+def test_compact_tables_drops_empty_columns_and_rows() -> None:
+    table = (
+        "| Region | Q1 | Q2 | Unnamed: 3 | Unnamed: 4 |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| North | 100.0 | 200.0 | NaN | NaN |\n"
+        "| South | 150.0 | 250.0 | NaN | NaN |\n"
+        "| NaN | NaN | NaN | NaN | NaN |"
+    )
+    compacted = compact_tables(table)
+
+    assert "Unnamed" not in compacted
+    assert "NaN" not in compacted
+    # Float noise from pandas is trimmed; the values themselves survive.
+    assert "| North | 100 | 200 |" in compacted
+    assert "| South | 150 | 250 |" in compacted
+    # The all-empty row is gone, leaving header, separator and two rows.
+    assert len(compacted.strip().split("\n")) == 4
+
+
+def test_compact_tables_keeps_real_data() -> None:
+    table = (
+        "| A | B |\n"
+        "| --- | --- |\n"
+        "| 1 | 2 |"
+    )
+    assert compact_tables(table) == table
+
+    # Surrounding prose is untouched.
+    mixed = f"Intro line\n\n{table}\n\nClosing line"
+    assert "Intro line" in compact_tables(mixed)
+    assert "Closing line" in compact_tables(mixed)
+
+
+def test_strip_boilerplate_removes_chrome() -> None:
+    html = (
+        "<html><body>"
+        "<nav><a href='/a'>Nav link</a></nav>"
+        "<div class='cookie-banner'>We use cookies</div>"
+        "<article><h1>Title</h1><p>" + ("Real article body. " * 20) + "</p></article>"
+        "<footer><a href='/f'>Footer link</a></footer>"
+        "</body></html>"
+    )
+    cleaned = strip_boilerplate(html)
+
+    assert "Real article body." in cleaned
+    assert "Nav link" not in cleaned
+    assert "Footer link" not in cleaned
+    assert "We use cookies" not in cleaned
+
+
+def test_strip_boilerplate_falls_back_rather_than_emptying() -> None:
+    # A page that is nothing but chrome must not be reduced to nothing; a
+    # smaller document is worthless if it lost the content.
+    html = "<html><body><nav><a href='/a'>Only nav here</a></nav></body></html>"
+
+    assert "Only nav here" in strip_boilerplate(html)
+
+    # Short <article> tags must not hijack a page whose content lives outside.
+    page = (
+        "<html><body><p>" + ("Main body text. " * 40) + "</p>"
+        "<article>Tiny aside</article></body></html>"
+    )
+    assert "Main body text." in strip_boilerplate(page)
 
 
 def test_damaged_text_detection() -> None:
