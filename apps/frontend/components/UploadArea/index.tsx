@@ -10,6 +10,7 @@ import type { ConversionResponse } from "@/types/conversion";
 import { ErrorState } from "./ErrorState";
 import { FileDropZone, SupportedFormats } from "./FileDropZone";
 import { LoadingState } from "./LoadingState";
+import { mergeIntoQueue } from "./queue";
 import { ResultsPanel } from "./ResultsPanel";
 import {
   SessionHistory,
@@ -19,17 +20,24 @@ import { UrlInput } from "./UrlInput";
 
 type UploadStatus = "idle" | "loading" | "success" | "error";
 
+interface QueueProgress {
+  readonly current: number;
+  readonly total: number;
+  readonly fileName: string;
+}
+
 export function UploadArea(): ReactElement {
   const [status, setStatus] = useState<UploadStatus>("idle");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [queue, setQueue] = useState<readonly File[]>([]);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
+  const [progress, setProgress] = useState<QueueProgress | null>(null);
   const [urlValue, setUrlValue] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [result, setResult] = useState<ConversionResponse | null>(null);
-  const [sourceLabel, setSourceLabel] = useState("chatready-output");
-  const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>(
-    [],
-  );
+  const [activeResult, setActiveResult] = useState<SessionHistoryItem | null>(null);
+  const [failedNames, setFailedNames] = useState<readonly string[]>([]);
+  const [convertedCount, setConvertedCount] = useState(0);
+  const [sessionHistory, setSessionHistory] = useState<SessionHistoryItem[]>([]);
   const [pageDragDepth, setPageDragDepth] = useState(0);
 
   const isLoading = status === "loading";
@@ -78,10 +86,10 @@ export function UploadArea(): ReactElement {
         return;
       }
 
-      const file = event.dataTransfer?.files.item(0);
+      const dropped = Array.from(event.dataTransfer?.files ?? []);
 
-      if (file) {
-        handleFileSelected(file);
+      if (dropped.length > 0) {
+        handleFilesSelected(dropped);
       }
     }
 
@@ -96,41 +104,77 @@ export function UploadArea(): ReactElement {
       window.removeEventListener("dragleave", handleWindowDragLeave);
       window.removeEventListener("drop", handleWindowDrop);
     };
-  }, [isLoading]);
+    // `queue` is read by the drop handler through handleFilesSelected, so the
+    // listeners have to be rebound when it changes or drops land on stale state.
+  }, [isLoading, queue]);
 
-  function handleFileSelected(file: File): void {
+  function handleFilesSelected(incoming: readonly File[]): void {
     setPageDragDepth(0);
-    setResult(null);
     setUrlError(null);
 
-    if (file.size > maxUploadSizeBytes) {
-      setSelectedFile(null);
-      setStatus("error");
-      setErrorMessage(`File too large. Please upload a file under ${maxUploadSizeMb}MB.`);
-      return;
-    }
+    const { files, notice } = mergeIntoQueue(queue, incoming, maxUploadSizeBytes);
 
-    setSelectedFile(file);
-    setSourceLabel(file.name);
+    setQueue(files);
+    setQueueNotice(notice);
     setStatus("idle");
     setErrorMessage(null);
   }
 
-  async function handleConvertFile(): Promise<void> {
-    if (!selectedFile || isLoading) {
+  function handleRemoveFile(index: number): void {
+    setQueue((current) => current.filter((_, position) => position !== index));
+    setQueueNotice(null);
+  }
+
+  async function handleConvertQueue(): Promise<void> {
+    if (queue.length === 0 || isLoading) {
       return;
     }
 
+    const files = queue;
+
     setStatus("loading");
     setErrorMessage(null);
+    setQueueNotice(null);
 
-    try {
-      const conversionResult = await convertFile(selectedFile);
-      handleConversionSuccess(conversionResult, selectedFile.name);
-    } catch (error) {
-      setStatus("error");
-      setErrorMessage(getFriendlyError(error));
+    const converted: SessionHistoryItem[] = [];
+    const failures: string[] = [];
+    let lastError: unknown = null;
+
+    // Strictly sequential: the free host runs one small worker, so overlapping
+    // uploads would queue behind each other anyway and risk the 2 minute abort.
+    for (const [index, file] of files.entries()) {
+      setProgress({ current: index + 1, total: files.length, fileName: file.name });
+
+      try {
+        const result = await convertFile(file);
+        converted.push(createHistoryItem(result, file.name, file.size));
+      } catch (error) {
+        failures.push(file.name);
+        lastError = error;
+
+        // Nothing left to gain from the remaining files, and hammering a
+        // rate-limited server only digs the hole deeper.
+        if (error instanceof ApiRequestError && error.code === "rate_limit_exceeded") {
+          break;
+        }
+      }
     }
+
+    setProgress(null);
+
+    if (converted.length === 0) {
+      // Queue is kept so "Try again" retries the same files.
+      setStatus("error");
+      setErrorMessage(getFriendlyError(lastError));
+      return;
+    }
+
+    setQueue([]);
+    setFailedNames(failures);
+    setConvertedCount(converted.length);
+    setActiveResult(converted[converted.length - 1]);
+    setSessionHistory((current) => [...converted.slice().reverse(), ...current]);
+    setStatus("success");
   }
 
   async function handleConvertUrl(): Promise<void> {
@@ -149,48 +193,45 @@ export function UploadArea(): ReactElement {
     setStatus("loading");
     setUrlError(null);
     setErrorMessage(null);
-    setSelectedFile(null);
-    setSourceLabel(trimmedUrl);
+    setQueue([]);
+    setQueueNotice(null);
 
     try {
       const conversionResult = await convertUrl(trimmedUrl);
-      handleConversionSuccess(conversionResult, trimmedUrl);
+      const item = createHistoryItem(conversionResult, trimmedUrl);
+
+      setFailedNames([]);
+      setConvertedCount(1);
+      setActiveResult(item);
+      setSessionHistory((current) => [item, ...current]);
+      setStatus("success");
     } catch (error) {
       setStatus("error");
       setErrorMessage(getFriendlyError(error));
     }
   }
 
+  function handleRetry(): void {
+    if (queue.length > 0) {
+      void handleConvertQueue();
+      return;
+    }
+
+    void handleConvertUrl();
+  }
+
   function handleReset(): void {
     setStatus("idle");
-    setSelectedFile(null);
+    setQueue([]);
+    setQueueNotice(null);
     setUrlValue("");
     setUrlError(null);
     setErrorMessage(null);
-    setResult(null);
-    setSourceLabel("chatready-output");
+    setActiveResult(null);
+    setFailedNames([]);
+    setConvertedCount(0);
     setPageDragDepth(0);
-  }
-
-  function handleConversionSuccess(
-    conversionResult: ConversionResponse,
-    label: string,
-  ): void {
-    setResult(conversionResult);
-    setSourceLabel(label);
-    setStatus("success");
-    setSessionHistory((currentHistory) => [
-      {
-        createdAtLabel: new Intl.DateTimeFormat("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }).format(new Date()),
-        id: createHistoryId(),
-        result: conversionResult,
-        sourceLabel: label,
-      },
-      ...currentHistory,
-    ]);
+    scrollToUpload();
   }
 
   return (
@@ -206,20 +247,29 @@ export function UploadArea(): ReactElement {
       >
         {showPageDropOverlay ? <PageDropOverlay /> : null}
 
-        {status === "loading" ? <LoadingState /> : null}
+        {status === "loading" ? (
+          <LoadingState
+            current={progress?.current}
+            total={progress?.total}
+            fileName={progress?.fileName}
+          />
+        ) : null}
 
         {status === "error" && errorMessage ? (
           <ErrorState
             message={errorMessage}
-            onTryAgain={selectedFile ? handleConvertFile : handleConvertUrl}
+            onTryAgain={handleRetry}
+            onReset={handleReset}
           />
         ) : null}
 
-        {status === "success" && result ? (
+        {status === "success" && activeResult ? (
           <ResultsPanel
-            result={result}
-            sourceLabel={sourceLabel}
-            originalFileSizeBytes={selectedFile?.size}
+            result={activeResult.result}
+            sourceLabel={activeResult.sourceLabel}
+            originalFileSizeBytes={activeResult.originalSizeBytes}
+            convertedCount={convertedCount}
+            failedNames={failedNames}
             onReset={handleReset}
           />
         ) : null}
@@ -229,10 +279,15 @@ export function UploadArea(): ReactElement {
             <FileDropZone
               disabled={isLoading}
               isDragActive={showPageDropOverlay}
-              selectedFile={selectedFile}
-              onClearFile={() => setSelectedFile(null)}
-              onConvertFile={handleConvertFile}
-              onFileSelected={handleFileSelected}
+              files={queue}
+              notice={queueNotice}
+              onClearAll={() => {
+                setQueue([]);
+                setQueueNotice(null);
+              }}
+              onClearFile={handleRemoveFile}
+              onConvertFiles={handleConvertQueue}
+              onFilesSelected={handleFilesSelected}
             />
             <UrlInput
               disabled={isLoading}
@@ -249,11 +304,26 @@ export function UploadArea(): ReactElement {
         ) : null}
       </section>
       <SessionHistory
+        activeId={status === "success" ? activeResult?.id ?? null : null}
         items={sessionHistory}
         onClearHistory={() => setSessionHistory([])}
+        onSelect={(item) => {
+          setStatus("success");
+          setConvertedCount(1);
+          setFailedNames([]);
+          setActiveResult(item);
+          scrollToUpload();
+        }}
       />
     </div>
   );
+}
+
+/** After paint, so the panel has already resized to the new state. */
+function scrollToUpload(): void {
+  requestAnimationFrame(() => {
+    document.getElementById("upload")?.scrollIntoView({ block: "start" });
+  });
 }
 
 function PageDropOverlay(): ReactElement {
@@ -302,6 +372,23 @@ function getFriendlyError(error: unknown): string {
   }
 
   return "Conversion failed. This file type may not be supported.";
+}
+
+function createHistoryItem(
+  result: ConversionResponse,
+  sourceLabel: string,
+  originalSizeBytes?: number,
+): SessionHistoryItem {
+  return {
+    createdAtLabel: new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date()),
+    id: createHistoryId(),
+    originalSizeBytes,
+    result,
+    sourceLabel,
+  };
 }
 
 function createHistoryId(): string {

@@ -31,10 +31,25 @@ const STAGES = [
   },
 ];
 
-export function LoadingState(): ReactElement {
-  const [stageIndex, setStageIndex] = useState(0);
+interface LoadingStateProps {
+  /** 1-based position in a multi-file batch; omitted for a single conversion. */
+  readonly current?: number;
+  readonly total?: number;
+  readonly fileName?: string;
+}
 
+export function LoadingState({
+  current,
+  total,
+  fileName,
+}: LoadingStateProps): ReactElement {
+  const [stageIndex, setStageIndex] = useState(0);
+  const isBatch = Boolean(total && total > 1);
+
+  // Restart the patter for each file in a batch, so "still going" tracks the
+  // file on screen rather than the whole queue.
   useEffect(() => {
+    setStageIndex(0);
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     STAGES.forEach((stage, index) => {
@@ -44,7 +59,7 @@ export function LoadingState(): ReactElement {
     });
 
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [current]);
 
   const stage = STAGES[stageIndex];
 
@@ -57,6 +72,12 @@ export function LoadingState(): ReactElement {
     >
       <span className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600 dark:border-slate-700 dark:border-t-teal-400" />
       <div className="max-w-sm">
+        {isBatch ? (
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-400">
+            File {current} of {total}
+            {fileName ? <span className="block normal-case tracking-normal text-slate-500 dark:text-slate-400">{fileName}</span> : null}
+          </p>
+        ) : null}
         <p className="text-lg font-semibold text-slate-950 transition-all dark:text-white">
           {stage.message}
         </p>

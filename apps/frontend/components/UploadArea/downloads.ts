@@ -37,12 +37,26 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(Math.max(0, Math.round(value)));
 }
 
-export function getSavingsLabel(result: ConversionResponse): string {
-  if (result.reductionPercent <= 0) {
-    return "Markdown ready";
+/** Token savings always win; file size is the fallback when tokens did not move. */
+export function getSavingsLabel(
+  result: ConversionResponse,
+  originalSizeBytes?: number,
+): string {
+  if (result.reductionPercent > 0) {
+    return `~${Math.round(result.reductionPercent)}% fewer tokens`;
   }
 
-  return `~${Math.round(result.reductionPercent)}% fewer tokens`;
+  if (originalSizeBytes && originalSizeBytes > 0) {
+    const markdownBytes = new TextEncoder().encode(result.markdown).byteLength;
+    const sizeReduction =
+      ((originalSizeBytes - markdownBytes) / originalSizeBytes) * 100;
+
+    if (sizeReduction > 0) {
+      return `~${Math.round(sizeReduction)}% smaller`;
+    }
+  }
+
+  return "Markdown ready";
 }
 
 function getDownloadFileName(sourceLabel: string): string {
