@@ -10,6 +10,8 @@ import { useRef } from "react";
 
 import { maxUploadSizeMb } from "@/lib/env";
 
+import { MAX_FILES } from "./queue";
+
 const ACCEPTED_FILE_TYPES = [
   ".pdf",
   ".docx",
@@ -38,21 +40,26 @@ const FORMAT_GROUPS = [
 interface FileDropZoneProps {
   readonly disabled: boolean;
   readonly isDragActive: boolean;
-  readonly selectedFile: File | null;
-  readonly onClearFile: () => void;
-  readonly onConvertFile: () => void;
-  readonly onFileSelected: (file: File) => void;
+  readonly files: readonly File[];
+  readonly notice: string | null;
+  readonly onClearFile: (index: number) => void;
+  readonly onClearAll: () => void;
+  readonly onConvertFiles: () => void;
+  readonly onFilesSelected: (files: readonly File[]) => void;
 }
 
 export function FileDropZone({
   disabled,
   isDragActive,
-  selectedFile,
+  files,
+  notice,
   onClearFile,
-  onConvertFile,
-  onFileSelected,
+  onClearAll,
+  onConvertFiles,
+  onFilesSelected,
 }: FileDropZoneProps): ReactElement {
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFull = files.length >= MAX_FILES;
 
   function openFilePicker(): void {
     if (!disabled) {
@@ -68,9 +75,9 @@ export function FileDropZone({
   }
 
   function handleFileInput(event: ChangeEvent<HTMLInputElement>): void {
-    const file = event.target.files?.[0];
-    if (file) {
-      onFileSelected(file);
+    const selected = Array.from(event.target.files ?? []);
+    if (selected.length > 0) {
+      onFilesSelected(selected);
     }
     event.target.value = "";
   }
@@ -79,9 +86,9 @@ export function FileDropZone({
     event.preventDefault();
     event.stopPropagation();
     if (disabled) return;
-    const file = event.dataTransfer.files.item(0);
-    if (file) {
-      onFileSelected(file);
+    const dropped = Array.from(event.dataTransfer.files);
+    if (dropped.length > 0) {
+      onFilesSelected(dropped);
     }
   }
 
@@ -91,21 +98,24 @@ export function FileDropZone({
         ref={inputRef}
         id="file-input"
         type="file"
+        multiple
         accept={ACCEPTED_FILE_TYPES.join(",")}
         disabled={disabled}
         onChange={handleFileInput}
         className="sr-only"
       />
 
-      {selectedFile ? (
-        <SelectedFilePanel
-          file={selectedFile}
+      {files.length > 0 ? (
+        <SelectedFilesPanel
+          files={files}
           disabled={disabled}
+          isFull={isFull}
+          onAddMore={openFilePicker}
+          onClearAll={onClearAll}
           onClearFile={onClearFile}
-          onConvertFile={onConvertFile}
+          onConvertFiles={onConvertFiles}
         />
       ) : (
-
         <div
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
@@ -130,10 +140,10 @@ export function FileDropZone({
 
           <div>
             <p className="text-xl font-semibold text-slate-950 dark:text-white">
-              {isDragActive ? "Drop to convert" : "Drop your file here"}
+              {isDragActive ? "Drop to convert" : "Drop your files here"}
             </p>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              or use the button below &mdash; up to {maxUploadSizeMb}MB
+              or use the button below &mdash; up to {MAX_FILES} files, {maxUploadSizeMb}MB each
             </p>
           </div>
 
@@ -144,62 +154,109 @@ export function FileDropZone({
             className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-slate-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:scale-[1.03] hover:bg-slate-800 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
           >
             <FolderIcon />
-            Choose a file
+            Choose files
           </button>
         </div>
       )}
 
+      {notice ? (
+        <p role="status" className="text-sm text-amber-700 dark:text-amber-400">
+          {notice}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-interface SelectedFilePanelProps {
+interface SelectedFilesPanelProps {
   readonly disabled: boolean;
-  readonly file: File;
-  readonly onClearFile: () => void;
-  readonly onConvertFile: () => void;
+  readonly files: readonly File[];
+  readonly isFull: boolean;
+  readonly onAddMore: () => void;
+  readonly onClearAll: () => void;
+  readonly onClearFile: (index: number) => void;
+  readonly onConvertFiles: () => void;
 }
 
-function SelectedFilePanel({
+function SelectedFilesPanel({
   disabled,
-  file,
+  files,
+  isFull,
+  onAddMore,
+  onClearAll,
   onClearFile,
-  onConvertFile,
-}: SelectedFilePanelProps): ReactElement {
+  onConvertFiles,
+}: SelectedFilesPanelProps): ReactElement {
+  const isBatch = files.length > 1;
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
-          <FileIcon />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-slate-950 dark:text-white">
-            {file.name}
-          </p>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            {getFileExtension(file.name)} &middot; {formatBytes(file.size)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClearFile}
-          disabled={disabled}
-          aria-label="Remove selected file"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-800 dark:hover:text-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
-        >
-          <XIcon />
-        </button>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {files.length} {files.length === 1 ? "file" : "files"} ready
+        </p>
+        {isBatch ? (
+          <button
+            type="button"
+            onClick={onClearAll}
+            disabled={disabled}
+            className="inline-flex min-h-9 items-center rounded-md px-2 text-xs font-semibold text-slate-500 underline-offset-2 transition hover:text-slate-950 hover:underline focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:opacity-50 dark:text-slate-400 dark:hover:text-white dark:focus:ring-white dark:focus:ring-offset-slate-950"
+          >
+            Remove all
+          </button>
+        ) : null}
       </div>
 
-      <button
-        type="button"
-        onClick={onConvertFile}
-        disabled={disabled}
-        className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-teal-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-teal-500 dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950 dark:disabled:bg-slate-700"
-      >
-        <SparkleIcon />
-        Make it AI-ready
-      </button>
+      <ul className="flex flex-col gap-2">
+        {files.map((file, index) => (
+          <li
+            key={`${file.name}-${file.size}`}
+            className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+              <FileIcon />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
+                {file.name}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {getFileExtension(file.name)} &middot; {formatBytes(file.size)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onClearFile(index)}
+              disabled={disabled}
+              aria-label={`Remove ${file.name}`}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-slate-800 dark:hover:text-slate-200 dark:focus:ring-white dark:focus:ring-offset-slate-950"
+            >
+              <XIcon />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+        <button
+          type="button"
+          onClick={onConvertFiles}
+          disabled={disabled}
+          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-teal-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-teal-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+        >
+          <SparkleIcon />
+          {isBatch ? `Make ${files.length} files AI-ready` : "Make it AI-ready"}
+        </button>
+        <button
+          type="button"
+          onClick={onAddMore}
+          disabled={disabled || isFull}
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:border-slate-500 dark:focus:ring-white dark:focus:ring-offset-slate-950"
+        >
+          <PlusIcon />
+          {isFull ? `Limit ${MAX_FILES} files` : "Add more"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -276,7 +333,7 @@ function FolderIcon(): ReactElement {
 
 function FileIcon(): ReactElement {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none">
       <path
         d="M7 3h6l4 4v14H7V3Z"
         stroke="currentColor"
@@ -298,6 +355,19 @@ function XIcon(): ReactElement {
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
       <path
         d="M18 6 6 18M6 6l12 12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function PlusIcon(): ReactElement {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 5v14M5 12h14"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"

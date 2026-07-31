@@ -32,7 +32,7 @@ export function Navbar(): ReactElement {
           <ThemeToggle />
           <a
             href="#upload"
-            className="ml-1 inline-flex min-h-9 items-center justify-center rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:scale-[1.04] hover:bg-teal-700 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 dark:bg-teal-500 dark:text-white dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950"
+            className="ml-1 inline-flex min-h-9 items-center justify-center rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:scale-[1.04] hover:bg-teal-700 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 dark:bg-teal-500 dark:text-slate-950 dark:hover:bg-teal-400 dark:focus:ring-teal-400 dark:focus:ring-offset-slate-950"
           >
             Convert now
           </a>
