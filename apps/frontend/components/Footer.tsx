@@ -13,6 +13,12 @@ export function Footer(): ReactElement {
             Privacy
           </a>
           <a
+            href="mailto:admin@chatready.online"
+            className="hover:text-slate-950 dark:hover:text-white"
+          >
+            Contact
+          </a>
+          <a
             href="https://github.com/microsoft/markitdown"
             target="_blank"
             rel="noreferrer"
