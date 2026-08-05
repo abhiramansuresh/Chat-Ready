@@ -1,12 +1,13 @@
 {
   "fill" : {
-    "automatic-gradient" : "srgb:0.00000,0.83251,1.00000,1.00000"
+    "automatic-gradient" : "display-p3:0.61193,0.61793,0.61793,1.00000"
   },
   "groups" : [
     {
       "hidden" : false,
       "layers" : [
         {
+          "hidden" : true,
           "image-name" : "chatReady.png",
           "name" : "chatReady",
           "position" : {
@@ -14,6 +15,48 @@
             "translation-in-points" : [
               0,
               5.684341886080802e-14
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "hidden" : true,
+          "image-name" : "chatReady_Icon.png",
+          "name" : "chatReady_Icon"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "chatready_icon.svg",
+          "name" : "chatready_icon",
+          "position" : {
+            "scale" : 1.1,
+            "translation-in-points" : [
+              15,
+              0
             ]
           }
         }
