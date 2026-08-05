@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Background -->
-  <rect width="64" height="64" rx="14" fill="#0f172a"/>
-  <!-- Document body -->
-  <path d="M15 11 H37 L49 23 V53 H15 Z" fill="#f1f5f9" rx="2"/>
-  <!-- Dog-ear fold -->
-  <path d="M37 11 L49 23 H37 Z" fill="#94a3b8"/>
-  <!-- Teal lines (Markdown content) -->
-  <rect x="21" y="31" width="22" height="5" rx="2.5" fill="#0d9488"/>
-  <rect x="21" y="40" width="15" height="5" rx="2.5" fill="#0d9488"/>
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1000" height="1000" fill="#191919"/>
+<path d="M272 193H534.706L678 339.286V705H272V193Z" fill="#F1F5F9"/>
+<path d="M535 193L678 339H535V193Z" fill="#94A3B8"/>
+<rect x="316" y="299" width="170" height="40" rx="20" fill="#94A3B8"/>
+<rect x="316" y="379" width="315" height="40" rx="20" fill="#94A3B8"/>
+<rect x="316" y="459" width="315" height="40" rx="20" fill="#94A3B8"/>
+<path d="M683.577 551C716.229 551 742.699 577.47 742.699 610.122V690.286C742.699 712.937 729.961 732.613 711.257 742.541V802.435L710.487 804.743C703.245 826.47 673.346 827.24 664.498 807.053L625.401 749.409H500.122C467.47 749.409 441 722.938 441 690.286V610.122C441 577.47 467.47 551 500.122 551H683.577Z" fill="#4FC299" stroke="#F1F5F9" stroke-width="30"/>
+<rect x="495.295" y="624.382" width="50.5227" height="50.5227" rx="25.2613" fill="#F1F5F9"/>
+<rect x="566.027" y="624.382" width="51.6454" height="50.5227" rx="25.2613" fill="#F1F5F9"/>
+<rect x="637.882" y="624.382" width="50.5227" height="50.5227" rx="25.2613" fill="#F1F5F9"/>
 </svg>
