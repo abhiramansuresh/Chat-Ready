@@ -1,5 +1,7 @@
 # ChatReady
 
+<img width="1280" height="640" alt="GithubBanner" src="https://github.com/user-attachments/assets/b8834de1-592b-4c94-9dd0-0332b3cf03be" />
+
 **Get your documents ready for AI.**
 
 ChatReady converts PDFs, Word docs, spreadsheets, presentations, images, and web pages into clean [Markdown](https://www.markdownguide.org/getting-started/) — the format that AI tools like ChatGPT, Claude, and Gemini read most accurately.
