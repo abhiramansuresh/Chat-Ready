@@ -7,6 +7,7 @@ import { HeroSection } from "./HeroSection";
 import { HowItWorks } from "./HowItWorks";
 import { Navbar } from "./Navbar";
 import { PrivacySection } from "./PrivacySection";
+import { ProductHuntBadge } from "./ProductHuntBadge";
 import { UploadArea } from "./UploadArea";
 
 export function HomePage(): ReactElement {
@@ -25,6 +26,7 @@ export function HomePage(): ReactElement {
         </div>
         <HeroSection />
         <UploadArea />
+        <ProductHuntBadge />
       </section>
 
       <HowItWorks />
